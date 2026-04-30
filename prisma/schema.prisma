@@ -1,0 +1,96 @@
+generator client {
+  provider     = "prisma-client-js"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MuscleGroup {
+  chest
+  back
+  shoulders
+  biceps
+  triceps
+  forearms
+  quadriceps
+  hamstrings
+  glutes
+  calves
+  abs
+  cardio
+
+  @@map("muscle_group")
+}
+
+enum SetType {
+  warmup
+  failure
+  dropset
+  normal
+
+  @@map("set_type")
+}
+
+model User {
+  id        String    @id @default(uuid()) @db.Uuid
+  name      String    @db.VarChar()
+  email     String    @unique @db.VarChar()
+  hash      String    @db.VarChar()
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
+  workouts  Workout[]
+
+  @@map("user")
+}
+
+model Workout {
+  id               String            @id @default(uuid()) @db.Uuid
+  title            String            @db.VarChar()
+  description      String?           @db.VarChar()
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId           String            @map("user_id") @db.Uuid
+  workoutExercises WorkoutExercise[]
+
+  @@map("workout")
+}
+
+model Exercise {
+  id               String            @id @default(uuid()) @db.Uuid
+  title            String            @unique @db.VarChar()
+  muscleGroups     MuscleGroup[]     @map("muscle_groups")
+  workoutExercises WorkoutExercise[]
+
+  @@map("exercise")
+}
+
+model WorkoutExercise {
+  id          String  @id @default(uuid()) @db.Uuid
+  description String? @db.VarChar()
+
+  workoutId String  @map("workout_id") @db.Uuid
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  exerciseId String   @map("exercise_id") @db.Uuid
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  order Int   @db.Integer
+  sets  Set[]
+
+  @@map("workout_exercise")
+}
+
+model Set {
+  id String @id @default(uuid()) @db.Uuid
+
+  workoutExerciseId String          @map("workout_exercise_id") @db.Uuid
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  weight            Float?          @default(0) @db.Real
+  order             Int             @db.Integer 
+  reps              Int             @db.Integer
+  type              SetType         @default(normal)
+
+  @@map("set")
+}
