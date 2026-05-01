@@ -1,1 +1,1 @@
-export * from './ViewExerciseDTO';
+export * from './ViewExerciseDTO.dto';

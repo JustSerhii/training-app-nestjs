@@ -18,8 +18,11 @@ import {
   ViewWorkoutExerciseDTO,
 } from './dto';
 import { AuthGuard } from 'src/auth/guards';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { SWAGGER_BEARER_NAME } from 'src/common';
 
 @UseGuards(AuthGuard)
+@ApiBearerAuth(SWAGGER_BEARER_NAME)
 @Controller('workouts/:workoutId/workout-exercises')
 export class WorkoutExercisesController {
   constructor(

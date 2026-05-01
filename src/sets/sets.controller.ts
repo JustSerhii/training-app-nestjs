@@ -14,8 +14,11 @@ import { SetsService } from './sets.service';
 import { CreateSetDTO, ReorderSetsDTO, UpdateSetDTO, ViewSetDTO } from './dto';
 import * as types from 'src/auth/types';
 import { AuthGuard } from 'src/auth/guards';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { SWAGGER_BEARER_NAME } from 'src/common';
 
 @UseGuards(AuthGuard)
+@ApiBearerAuth(SWAGGER_BEARER_NAME)
 @Controller('workouts/:workoutId/workout-exercises/:workoutExerciseId/sets')
 export class SetsController {
   constructor(private readonly setsService: SetsService) {}

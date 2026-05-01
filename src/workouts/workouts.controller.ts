@@ -15,8 +15,11 @@ import { WorkoutsService } from './workouts.service';
 import { AuthGuard } from 'src/auth/guards';
 import * as types from 'src/auth/types';
 import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
+import { ApiBearerAuth } from '@nestjs/swagger';
+import { SWAGGER_BEARER_NAME } from 'src/common';
 
 @UseGuards(AuthGuard)
+@ApiBearerAuth(SWAGGER_BEARER_NAME)
 @Controller('workouts')
 export class WorkoutsController {
   constructor(private readonly workoutsService: WorkoutsService) {}
