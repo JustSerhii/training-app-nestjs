@@ -1,5 +1,5 @@
 import { SetType } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsNumber, IsOptional } from 'class-validator';
 
 export class UpdateSetDTO {
   @IsNumber()
@@ -13,7 +13,4 @@ export class UpdateSetDTO {
   @IsOptional()
   @IsEnum(SetType)
   type?: SetType;
-
-  @IsUUID()
-  workoutExerciseId?: string;
 }
