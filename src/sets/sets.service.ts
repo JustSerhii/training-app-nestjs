@@ -3,31 +3,18 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma';
 import { CreateSetDTO, ReorderSetsDTO, UpdateSetDTO, ViewSetDTO } from './dto';
-import { SetType } from '@prisma/client';
-import { SET_SELECT } from './set.select';
+import { SetsRepository } from './sets.repository';
+import { WorkoutsExercisesRepository } from 'src/workout-exercises/workout-exercises.repository';
 
 const SET_NOT_FOUND = 'set not found';
 
 @Injectable()
 export class SetsService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async assertWorkoutExerciseOwner(
-    userId: string,
-    workoutExerciseId: string,
-  ) {
-    const workoutExercise = await this.prisma.workoutExercise.findFirst({
-      where: {
-        id: workoutExerciseId,
-        workout: {
-          userId,
-        },
-      },
-    });
-    if (!workoutExercise) throw new ForbiddenException();
-  }
+  constructor(
+    private readonly setsRepository: SetsRepository,
+    private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
+  ) {}
 
   async createSet(
     userId: string,
@@ -36,23 +23,11 @@ export class SetsService {
   ): Promise<ViewSetDTO> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
 
-    const lastSet = await this.prisma.set.findFirst({
-      where: { workoutExerciseId },
-      orderBy: { order: 'desc' },
-    });
+    const lastSet = await this.setsRepository.findLastOne(workoutExerciseId);
 
     const order = lastSet ? lastSet.order + 1 : 1;
 
-    return await this.prisma.set.create({
-      data: {
-        weight: data.weight,
-        reps: data.reps,
-        type: data.type ?? SetType.normal,
-        workoutExerciseId,
-        order,
-      },
-      select: SET_SELECT,
-    });
+    return await this.setsRepository.create(workoutExerciseId, data, order);
   }
 
   async getSet(
@@ -61,13 +36,7 @@ export class SetsService {
     setId: string,
   ): Promise<ViewSetDTO> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
-    const set = await this.prisma.set.findFirst({
-      where: {
-        workoutExerciseId,
-        id: setId,
-      },
-      select: SET_SELECT,
-    });
+    const set = await this.setsRepository.findFirst(workoutExerciseId, setId);
     if (!set) throw new NotFoundException(SET_NOT_FOUND);
     return set;
   }
@@ -77,13 +46,7 @@ export class SetsService {
     workoutExerciseId: string,
   ): Promise<ViewSetDTO[]> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
-    return this.prisma.set.findMany({
-      where: {
-        workoutExerciseId,
-      },
-      select: SET_SELECT,
-      orderBy: { order: 'asc' },
-    });
+    return this.setsRepository.findMany(workoutExerciseId);
   }
 
   async updateSet(
@@ -94,20 +57,10 @@ export class SetsService {
   ): Promise<ViewSetDTO> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
 
-    const set = await this.prisma.set.findUnique({
-      where: {
-        id: setId,
-      },
-    });
+    const set = await this.setsRepository.findFirst(workoutExerciseId, setId);
     if (!set) throw new NotFoundException(SET_NOT_FOUND);
 
-    return await this.prisma.set.update({
-      where: {
-        id: setId,
-      },
-      data,
-      select: SET_SELECT,
-    });
+    return this.setsRepository.update(setId, data);
   }
 
   async deleteSet(
@@ -116,18 +69,8 @@ export class SetsService {
     setId: string,
   ): Promise<void> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
-
-    const set = await this.prisma.set.findUnique({
-      where: {
-        id: setId,
-      },
-    });
-    if (!set) throw new NotFoundException(SET_NOT_FOUND);
-    await this.prisma.set.delete({
-      where: {
-        id: setId,
-      },
-    });
+    const count = await this.setsRepository.deleteOne(workoutExerciseId, setId);
+    if (count === 0) throw new NotFoundException(SET_NOT_FOUND);
   }
 
   async reorderSets(
@@ -137,14 +80,17 @@ export class SetsService {
   ): Promise<ViewSetDTO[]> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
 
-    return await this.prisma.$transaction(
-      data.sets.map((item) =>
-        this.prisma.set.update({
-          where: { id: item.id },
-          data: { order: item.order },
-          select: SET_SELECT,
-        }),
-      ),
+    return this.setsRepository.reorder(data, workoutExerciseId);
+  }
+
+  private async assertWorkoutExerciseOwner(
+    userId: string,
+    workoutExerciseId: string,
+  ) {
+    const exists = await this.workoutExercisesRepository.existsByOwner(
+      userId,
+      workoutExerciseId,
     );
+    if (!exists) throw new ForbiddenException();
   }
 }

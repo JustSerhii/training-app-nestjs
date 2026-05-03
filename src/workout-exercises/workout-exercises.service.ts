@@ -1,4 +1,3 @@
-import { PrismaService } from 'src/prisma';
 import {
   CreateWorkoutExerciseDTO,
   ViewWorkoutExerciseDTO,
@@ -9,27 +8,17 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { WORKOUT_EXERCISE_SELECT } from './workout-exercise.select';
+import { WorkoutsExercisesRepository } from './workout-exercises.repository';
+import { WorkoutsRepository } from 'src/workouts/workouts.repository';
 
-const WOKOURT_EXERCISE_NOT_FOUND = 'no workout exercise found';
+const WORKOUT_EXERCISE_NOT_FOUND = 'no workout exercise found';
 
 @Injectable()
 export class WorkoutExercisesService {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async assertWorkoutOwner(
-    userId: string,
-    workoutId: string,
-  ): Promise<void> {
-    const workout = await this.prisma.workout.findFirst({
-      where: {
-        id: workoutId,
-        userId,
-      },
-    });
-
-    if (!workout) throw new ForbiddenException();
-  }
+  constructor(
+    private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
+    private readonly workoutsRepository: WorkoutsRepository,
+  ) {}
 
   async createWorkoutExercise(
     userId: string,
@@ -38,26 +27,12 @@ export class WorkoutExercisesService {
   ): Promise<ViewWorkoutExerciseDTO> {
     await this.assertWorkoutOwner(userId, workoutId);
 
-    const lastWorkoutExercise = await this.prisma.workoutExercise.findFirst({
-      where: {
-        workoutId,
-      },
-      orderBy: {
-        order: 'desc',
-      },
-    });
+    const lastWorkoutExercise =
+      await this.workoutExercisesRepository.findLastOne(workoutId);
 
     const order = lastWorkoutExercise ? lastWorkoutExercise.order + 1 : 1;
 
-    return await this.prisma.workoutExercise.create({
-      data: {
-        description: data.description,
-        workoutId: workoutId,
-        exerciseId: data.exerciseId,
-        order,
-      },
-      select: WORKOUT_EXERCISE_SELECT,
-    });
+    return this.workoutExercisesRepository.create(workoutId, data, order);
   }
 
   async getWorkoutExercise(
@@ -67,14 +42,13 @@ export class WorkoutExercisesService {
   ): Promise<ViewWorkoutExerciseDTO> {
     await this.assertWorkoutOwner(userId, workoutId);
 
-    const workoutExercise = await this.prisma.workoutExercise.findUnique({
-      where: {
-        id: workoutExerciseId,
-      },
-      select: WORKOUT_EXERCISE_SELECT,
-    });
+    const workoutExercise = await this.workoutExercisesRepository.findFirst(
+      workoutId,
+      workoutExerciseId,
+    );
+
     if (!workoutExercise)
-      throw new NotFoundException(WOKOURT_EXERCISE_NOT_FOUND);
+      throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
     return workoutExercise;
   }
 
@@ -83,13 +57,7 @@ export class WorkoutExercisesService {
     workoutId: string,
   ): Promise<ViewWorkoutExerciseDTO[]> {
     await this.assertWorkoutOwner(userId, workoutId);
-    return this.prisma.workoutExercise.findMany({
-      where: {
-        workoutId,
-      },
-      select: WORKOUT_EXERCISE_SELECT,
-      orderBy: { order: 'asc' },
-    });
+    return this.workoutExercisesRepository.findMany(workoutId);
   }
 
   async updateWorkoutExercise(
@@ -99,20 +67,13 @@ export class WorkoutExercisesService {
     data: UpdateWorkoutExerciseDTO,
   ): Promise<ViewWorkoutExerciseDTO> {
     await this.assertWorkoutOwner(userId, workoutId);
-    const workoutExercise = await this.prisma.workoutExercise.findUnique({
-      where: {
-        id: workoutExerciseId,
-      },
-    });
+    const workoutExercise = await this.workoutExercisesRepository.findFirst(
+      workoutId,
+      workoutExerciseId,
+    );
     if (!workoutExercise)
-      throw new NotFoundException(WOKOURT_EXERCISE_NOT_FOUND);
-    return await this.prisma.workoutExercise.update({
-      where: {
-        id: workoutExerciseId,
-      },
-      data,
-      select: WORKOUT_EXERCISE_SELECT,
-    });
+      throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+    return this.workoutExercisesRepository.update(workoutExerciseId, data);
   }
 
   async deleteWorkoutExercise(
@@ -121,20 +82,18 @@ export class WorkoutExercisesService {
     workoutExerciseId: string,
   ): Promise<void> {
     await this.assertWorkoutOwner(userId, workoutId);
+    const count = await this.workoutExercisesRepository.deleteOne(
+      workoutId,
+      workoutExerciseId,
+    );
+    if (count === 0) throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+  }
 
-    const workoutExercise = await this.prisma.workoutExercise.findFirst({
-      where: {
-        id: workoutExerciseId,
-        workoutId,
-      },
-    });
-    if (!workoutExercise)
-      throw new NotFoundException(WOKOURT_EXERCISE_NOT_FOUND);
-
-    await this.prisma.workoutExercise.delete({
-      where: {
-        id: workoutExerciseId,
-      },
-    });
+  private async assertWorkoutOwner(
+    userId: string,
+    workoutId: string,
+  ): Promise<void> {
+    const workout = await this.workoutsRepository.findFirst(userId, workoutId);
+    if (!workout) throw new ForbiddenException();
   }
 }

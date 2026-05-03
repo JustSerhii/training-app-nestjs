@@ -26,8 +26,13 @@ describe('WorkoutsController (e2e)', () => {
 
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
-
     prisma = app.get(PrismaService);
+
+    await prisma.set.deleteMany();
+    await prisma.workoutExercise.deleteMany();
+    await prisma.workout.deleteMany();
+    await prisma.user.deleteMany();
+
     await request(app.getHttpServer())
       .post('/auth/register')
       .send({ name: 'Test', email: 'test@test.com', password: 'Test1234!' });
@@ -41,8 +46,6 @@ describe('WorkoutsController (e2e)', () => {
   });
 
   afterAll(async () => {
-    await prisma.workout.deleteMany();
-    await prisma.user.deleteMany({ where: { email: 'test@test.com' } });
     await app.close();
   });
 

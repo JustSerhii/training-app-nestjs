@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { PrismaModule } from 'src/prisma';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
+import { UsersModule } from 'src/users/users.module';
 
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
@@ -13,7 +13,7 @@ if (!jwtSecret) {
   controllers: [AuthController],
   providers: [AuthService],
   imports: [
-    PrismaModule,
+    UsersModule,
     JwtModule.register({
       global: true,
       secret: jwtSecret,

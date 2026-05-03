@@ -1,89 +1,41 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
-import { PrismaService } from 'src/prisma';
-import { WORKOUT_EXERCISE_SELECT } from 'src/workout-exercises';
 import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
+import { WorkoutsRepository } from './workouts.repository';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
-const WORKOUT_SELECT = {
-  id: true,
-  title: true,
-  description: true,
-  createdAt: true,
-} as const;
 
 @Injectable()
 export class WorkoutsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly workoutsRepository: WorkoutsRepository) {}
 
   async createWorkout(
     userId: string,
     data: CreateWorkoutDTO,
   ): Promise<ViewWorkoutDTO> {
-    const workout = await this.prisma.workout.create({
-      data: {
-        ...data,
-        userId,
-      },
-      select: WORKOUT_SELECT,
-    });
-    return workout;
+    return this.workoutsRepository.create(userId, data);
   }
 
   async getWorkouts(userId: string): Promise<ViewWorkoutDTO[]> {
-    return await this.prisma.workout.findMany({
-      where: {
-        userId,
-      },
-      select: WORKOUT_SELECT,
-    });
+    return this.workoutsRepository.findMany(userId);
   }
 
   async getWorkout(userId: string, workoutId: string): Promise<ViewWorkoutDTO> {
-    const workout = await this.prisma.workout.findFirst({
-      where: {
-        userId,
-        id: workoutId,
-      },
-      select: WORKOUT_SELECT,
-    });
-
-    if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
-    return workout;
+    return this.findOrFail(userId, workoutId);
   }
 
   async getFullWorkout(
     userId: string,
     workoutId: string,
   ): Promise<ViewFullWorkoutDTO> {
-    const workout = await this.prisma.workout.findFirst({
-      where: { id: workoutId, userId },
-      select: {
-        ...WORKOUT_SELECT,
-        workoutExercises: {
-          select: WORKOUT_EXERCISE_SELECT,
-          orderBy: { order: 'asc' },
-        },
-      },
-    });
+    const workout = await this.workoutsRepository.findFull(userId, workoutId);
     if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
     return workout;
   }
 
   async deleteWorkout(userId: string, workoutId: string): Promise<void> {
-    const workout = await this.prisma.workout.findFirst({
-      where: {
-        userId,
-        id: workoutId,
-      },
-    });
-    if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
-
-    await this.prisma.workout.delete({
-      where: {
-        id: workoutId,
-      },
-    });
+    const count = await this.workoutsRepository.deleteOne(userId, workoutId);
+    if (count === 0) throw new NotFoundException(WORKOUT_NOT_FOUND);
   }
 
   async updateWorkout(
@@ -91,18 +43,17 @@ export class WorkoutsService {
     workoutId: string,
     data: UpdateWorkoutDTO,
   ): Promise<ViewWorkoutDTO> {
-    const workout = await this.prisma.workout.findFirst({
-      where: {
-        userId,
-        id: workoutId,
-      },
-    });
-    if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
+    await this.findOrFail(userId, workoutId);
 
-    return await this.prisma.workout.update({
-      where: { id: workoutId },
-      data,
-      select: WORKOUT_SELECT,
-    });
+    return this.workoutsRepository.update(workoutId, data);
+  }
+
+  private async findOrFail(
+    userId: string,
+    workoutId: string,
+  ): Promise<ViewWorkoutDTO> {
+    const workout = await this.workoutsRepository.findFirst(userId, workoutId);
+    if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
+    return workout;
   }
 }
