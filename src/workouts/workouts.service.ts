@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
 import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
 import { WorkoutsRepository } from './workouts.repository';
+import {
+  PaginatedResponseDto,
+  PaginationDto,
+  PaginationMetaDto,
+} from 'src/common/dto/offset-pagination';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
 
@@ -16,8 +21,22 @@ export class WorkoutsService {
     return this.workoutsRepository.create(userId, data);
   }
 
-  async getWorkouts(userId: string): Promise<ViewWorkoutDTO[]> {
-    return this.workoutsRepository.findMany(userId);
+  async getWorkouts(
+    userId: string,
+    pagination: PaginationDto,
+  ): Promise<PaginatedResponseDto<ViewWorkoutDTO>> {
+    const { data, total } = await this.workoutsRepository.findManyPaginated(
+      userId,
+      pagination,
+    );
+
+    const meta = new PaginationMetaDto(
+      total,
+      pagination.page,
+      pagination.limit,
+    );
+
+    return new PaginatedResponseDto(data, meta);
   }
 
   async getWorkout(userId: string, workoutId: string): Promise<ViewWorkoutDTO> {

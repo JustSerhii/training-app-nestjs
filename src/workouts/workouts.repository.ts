@@ -4,6 +4,7 @@ import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
 import { WORKOUT_SELECT } from './workouts.select';
 import { WORKOUT_EXERCISE_SELECT } from 'src/workout-exercises';
 import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
+import { PaginationDto } from 'src/common/dto/offset-pagination';
 
 @Injectable()
 export class WorkoutsRepository {
@@ -58,6 +59,30 @@ export class WorkoutsRepository {
         },
       },
     });
+  }
+
+  async findManyPaginated(
+    userId: string,
+    pagination: PaginationDto,
+  ): Promise<{ data: ViewWorkoutDTO[]; total: number }> {
+    const [data, total] = await this.prisma.$transaction([
+      this.prisma.workout.findMany({
+        where: {
+          userId,
+        },
+        select: WORKOUT_SELECT,
+        skip: pagination.skip,
+        take: pagination.limit,
+        orderBy: { createdAt: 'desc' },
+      }),
+
+      this.prisma.workout.count({
+        where: {
+          userId,
+        },
+      }),
+    ]);
+    return { data, total };
   }
 
   async deleteOne(userId: string, workoutId: string): Promise<number> {

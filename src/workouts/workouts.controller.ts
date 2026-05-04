@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -17,6 +18,10 @@ import * as types from 'src/auth/types';
 import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { SWAGGER_BEARER_NAME } from 'src/common';
+import {
+  PaginatedResponseDto,
+  PaginationDto,
+} from 'src/common/dto/offset-pagination';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth(SWAGGER_BEARER_NAME)
@@ -33,8 +38,11 @@ export class WorkoutsController {
   }
 
   @Get()
-  getWorkouts(@Req() req: types.AuthRequest): Promise<ViewWorkoutDTO[]> {
-    return this.workoutsService.getWorkouts(req.user.sub);
+  getWorkouts(
+    @Req() req: types.AuthRequest,
+    @Query() query: PaginationDto,
+  ): Promise<PaginatedResponseDto<ViewWorkoutDTO>> {
+    return this.workoutsService.getWorkouts(req.user.sub, query);
   }
 
   @Get(':workoutId/full')
