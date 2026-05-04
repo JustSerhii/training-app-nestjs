@@ -69,13 +69,39 @@ export class SetsRepository {
   }
 
   async deleteOne(workoutExerciseId: string, setId: string): Promise<number> {
-    const { count } = await this.prisma.set.deleteMany({
+    const setToDelete = await this.prisma.set.findFirst({
       where: {
         workoutExerciseId,
         id: setId,
       },
+      select: {
+        order: true,
+        workoutExerciseId: true,
+      },
     });
-    return count;
+
+    if (!setToDelete) return 0;
+
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.set.deleteMany({
+        where: {
+          workoutExerciseId,
+          id: setId,
+        },
+      });
+      if (count > 0) {
+        await tx.set.updateMany({
+          where: {
+            workoutExerciseId,
+            order: { gt: setToDelete.order },
+          },
+          data: {
+            order: { decrement: 1 },
+          },
+        });
+      }
+      return count;
+    });
   }
 
   async reorder(
@@ -83,10 +109,10 @@ export class SetsRepository {
     workoutExerciseId: string,
   ): Promise<ViewSetDTO[]> {
     return this.prisma.$transaction(
-      data.sets.map((item) =>
+      data.setIds.map((id, index) =>
         this.prisma.set.update({
-          where: { id: item.id, workoutExerciseId },
-          data: { order: item.order },
+          where: { id, workoutExerciseId },
+          data: { order: index + 1 },
           select: SET_SELECT,
         }),
       ),

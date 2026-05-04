@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma';
 import { WORKOUT_EXERCISE_SELECT } from './workout-exercise.select';
 import {
   CreateWorkoutExerciseDTO,
+  ReorderWorkoutExercisesDTO,
   UpdateWorkoutExerciseDTO,
   ViewWorkoutExerciseDTO,
 } from './dto';
@@ -90,13 +91,37 @@ export class WorkoutsExercisesRepository {
     workoutId: string,
     workoutExerciseId: string,
   ): Promise<number> {
-    const { count } = await this.prisma.workoutExercise.deleteMany({
+    const toDelete = await this.prisma.workoutExercise.findFirst({
       where: {
         workoutId,
         id: workoutExerciseId,
       },
+      select: {
+        order: true,
+      },
     });
-    return count;
+
+    if (!toDelete) return 0;
+    return this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.workoutExercise.deleteMany({
+        where: {
+          workoutId,
+          id: workoutExerciseId,
+        },
+      });
+      if (count > 0) {
+        await tx.workoutExercise.updateMany({
+          where: {
+            workoutId,
+            order: { gt: toDelete.order },
+          },
+          data: {
+            order: { decrement: 1 },
+          },
+        });
+      }
+      return count;
+    });
   }
 
   async existsByOwner(
@@ -113,5 +138,23 @@ export class WorkoutsExercisesRepository {
       },
     });
     return !!workoutExercise;
+  }
+
+  async reorder(
+    workoutId: string,
+    data: ReorderWorkoutExercisesDTO,
+  ): Promise<ViewWorkoutExerciseDTO[]> {
+    return this.prisma.$transaction(
+      data.workoutExercisesIds.map((id, index) =>
+        this.prisma.workoutExercise.update({
+          where: {
+            id,
+            workoutId,
+          },
+          data: { order: index + 1 },
+          select: WORKOUT_EXERCISE_SELECT,
+        }),
+      ),
+    );
   }
 }

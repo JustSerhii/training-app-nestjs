@@ -2,8 +2,10 @@ import {
   CreateWorkoutExerciseDTO,
   ViewWorkoutExerciseDTO,
   UpdateWorkoutExerciseDTO,
+  ReorderWorkoutExercisesDTO,
 } from './dto';
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -87,6 +89,28 @@ export class WorkoutExercisesService {
       workoutExerciseId,
     );
     if (count === 0) throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+  }
+
+  async reorderWorkoutExercises(
+    userId: string,
+    workoutId: string,
+    data: ReorderWorkoutExercisesDTO,
+  ): Promise<ViewWorkoutExerciseDTO[]> {
+    await this.assertWorkoutOwner(userId, workoutId);
+    const existing = await this.workoutExercisesRepository.findMany(workoutId);
+
+    const existingIds = new Set(existing.map((item) => item.id));
+
+    for (const id of data.workoutExercisesIds) {
+      if (!existingIds.has(id))
+        throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+    }
+
+    const uniqueIds = new Set(data.workoutExercisesIds);
+    if (uniqueIds.size !== data.workoutExercisesIds.length)
+      throw new BadRequestException('Dublicate orders');
+
+    return this.workoutExercisesRepository.reorder(workoutId, data);
   }
 
   private async assertWorkoutOwner(

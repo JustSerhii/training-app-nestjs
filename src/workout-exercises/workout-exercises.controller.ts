@@ -14,6 +14,7 @@ import { WorkoutExercisesService } from './workout-exercises.service';
 import * as types from 'src/auth/types';
 import {
   CreateWorkoutExerciseDTO,
+  ReorderWorkoutExercisesDTO,
   UpdateWorkoutExerciseDTO,
   ViewWorkoutExerciseDTO,
 } from './dto';
@@ -36,6 +37,19 @@ export class WorkoutExercisesController {
     @Req() req: types.AuthRequest,
   ): Promise<ViewWorkoutExerciseDTO> {
     return this.workoutExercisesService.createWorkoutExercise(
+      req.user.sub,
+      workoutId,
+      data,
+    );
+  }
+
+  @Patch('reorder')
+  reorderWorkoutExercises(
+    @Param('workoutId') workoutId: string,
+    @Req() req: types.AuthRequest,
+    @Body() data: ReorderWorkoutExercisesDTO,
+  ): Promise<ViewWorkoutExerciseDTO[]> {
+    return this.workoutExercisesService.reorderWorkoutExercises(
       req.user.sub,
       workoutId,
       data,

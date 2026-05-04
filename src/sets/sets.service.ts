@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -79,6 +80,20 @@ export class SetsService {
     data: ReorderSetsDTO,
   ): Promise<ViewSetDTO[]> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
+
+    const existingSets = await this.setsRepository.findMany(workoutExerciseId);
+
+    const existingIds = new Set(existingSets.map((s) => s.id));
+
+    for (const id of data.setIds) {
+      if (!existingIds.has(id)) {
+        throw new NotFoundException(SET_NOT_FOUND);
+      }
+    }
+    const uniqueIds = new Set(data.setIds);
+
+    if (uniqueIds.size !== data.setIds.length)
+      throw new BadRequestException('Dublicate orders');
 
     return this.setsRepository.reorder(data, workoutExerciseId);
   }

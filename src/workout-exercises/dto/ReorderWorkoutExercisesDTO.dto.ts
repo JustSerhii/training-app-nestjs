@@ -1,8 +1,8 @@
 import { ArrayNotEmpty, IsArray, IsUUID } from 'class-validator';
 
-export class ReorderSetsDTO {
+export class ReorderWorkoutExercisesDTO {
   @IsArray()
   @ArrayNotEmpty()
   @IsUUID('all', { each: true })
-  setIds!: string[];
+  workoutExercisesIds!: string[];
 }
