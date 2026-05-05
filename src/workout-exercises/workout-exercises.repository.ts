@@ -7,6 +7,8 @@ import {
   UpdateWorkoutExerciseDTO,
   ViewWorkoutExerciseDTO,
 } from './dto';
+import { CursorPageOptionsDto } from 'src/common/dto/cursor-pagination';
+import { CursorPaginationResult } from 'src/common/types';
 
 @Injectable()
 export class WorkoutsExercisesRepository {
@@ -56,6 +58,42 @@ export class WorkoutsExercisesRepository {
       select: WORKOUT_EXERCISE_SELECT,
       orderBy: { order: 'asc' },
     });
+  }
+
+  async findManyPaginatedByCursor(
+    workoutId: string,
+    options: CursorPageOptionsDto,
+  ): Promise<CursorPaginationResult<ViewWorkoutExerciseDTO>> {
+    const { limit, afterCursor: afterId } = options;
+
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.workoutExercise.findMany({
+        where: {
+          workoutId,
+        },
+        take: limit + 1,
+        skip: afterId ? 1 : 0,
+        cursor: afterId ? { id: afterId } : undefined,
+        orderBy: { order: 'asc' },
+        select: WORKOUT_EXERCISE_SELECT,
+      }),
+
+      this.prisma.workoutExercise.count({
+        where: {
+          workoutId,
+        },
+      }),
+    ]);
+
+    const hasNextPage = items.length > limit;
+
+    if (hasNextPage) {
+      items.pop();
+    }
+
+    const lastId = items.length > 0 ? items[items.length - 1].id : null;
+
+    return { data: items, lastId, total, hasNextPage };
   }
 
   async create(

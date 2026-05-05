@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -21,6 +22,10 @@ import {
 import { AuthGuard } from 'src/auth/guards';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { SWAGGER_BEARER_NAME } from 'src/common';
+import {
+  CursorPageOptionsDto,
+  CursorPaginatedResponseDto,
+} from 'src/common/dto/cursor-pagination';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth(SWAGGER_BEARER_NAME)
@@ -74,10 +79,12 @@ export class WorkoutExercisesController {
   getWorkoutExercises(
     @Param('workoutId') workoutId: string,
     @Req() req: types.AuthRequest,
-  ): Promise<ViewWorkoutExerciseDTO[]> {
+    @Query() query: CursorPageOptionsDto,
+  ): Promise<CursorPaginatedResponseDto<ViewWorkoutExerciseDTO>> {
     return this.workoutExercisesService.getWorkoutExercises(
       req.user.sub,
       workoutId,
+      query,
     );
   }
 

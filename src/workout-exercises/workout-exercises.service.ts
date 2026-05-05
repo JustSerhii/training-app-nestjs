@@ -12,6 +12,12 @@ import {
 } from '@nestjs/common';
 import { WorkoutsExercisesRepository } from './workout-exercises.repository';
 import { WorkoutsRepository } from 'src/workouts/workouts.repository';
+import {
+  CursorPageOptionsDto,
+  CursorPaginatedResponseDto,
+  CursorPaginationMetaDto,
+} from 'src/common/dto/cursor-pagination';
+import { decodeCursor, encodeCursor } from 'src/common/utils';
 
 const WORKOUT_EXERCISE_NOT_FOUND = 'no workout exercise found';
 
@@ -57,9 +63,28 @@ export class WorkoutExercisesService {
   async getWorkoutExercises(
     userId: string,
     workoutId: string,
-  ): Promise<ViewWorkoutExerciseDTO[]> {
+    options: CursorPageOptionsDto,
+  ): Promise<CursorPaginatedResponseDto<ViewWorkoutExerciseDTO>> {
     await this.assertWorkoutOwner(userId, workoutId);
-    return this.workoutExercisesRepository.findMany(workoutId);
+
+    let afterId: string | undefined;
+
+    if (options.afterCursor) {
+      afterId = decodeCursor(options.afterCursor);
+    }
+
+    const { data, lastId, total, hasNextPage } =
+      await this.workoutExercisesRepository.findManyPaginatedByCursor(
+        workoutId,
+        {
+          limit: options.limit,
+          afterCursor: afterId,
+        },
+      );
+
+    const nextCursor = lastId && hasNextPage ? encodeCursor(lastId) : undefined;
+    const meta = new CursorPaginationMetaDto(options.limit, nextCursor, total);
+    return new CursorPaginatedResponseDto(data, meta);
   }
 
   async updateWorkoutExercise(
