@@ -28,7 +28,7 @@ export class SetsService {
 
     const order = lastSet ? lastSet.order + 1 : 1;
 
-    return await this.setsRepository.create(workoutExerciseId, data, order);
+    return this.setsRepository.create(workoutExerciseId, data, order);
   }
 
   async getSet(

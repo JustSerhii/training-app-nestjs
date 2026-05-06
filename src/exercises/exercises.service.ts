@@ -7,7 +7,7 @@ export class ExercisesService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getMany(): Promise<ViewExerciseDTO[]> {
-    return await this.prisma.exercise.findMany();
+    return this.prisma.exercise.findMany();
   }
 
   async getOne(id: string): Promise<ViewExerciseDTO> {
