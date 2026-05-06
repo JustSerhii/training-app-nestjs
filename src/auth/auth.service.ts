@@ -5,7 +5,8 @@ import { Hasher } from 'src/common/models';
 import { JwtService } from '@nestjs/jwt';
 import { UsersRepository } from 'src/users/users.repository';
 
-const ERROR_MESSAGE = 'Wrong email or password';
+const WRONG_EMAIL_PASSWORD_ERROR = 'Wrong email or password';
+const INVALID_REFRESH_TOKEN_ERROR = 'Invalid refresh token';
 
 @Injectable()
 export class AuthService {
@@ -17,7 +18,8 @@ export class AuthService {
   async register(data: RegisterUserDTO): Promise<ViewUserDTO> {
     const existingUser = await this.usersRepository.getByEmail(data.email);
 
-    if (existingUser) throw new UnauthorizedException(ERROR_MESSAGE);
+    if (existingUser)
+      throw new UnauthorizedException(WRONG_EMAIL_PASSWORD_ERROR);
 
     const hash = await Hasher.hash(data.password);
 
@@ -26,20 +28,72 @@ export class AuthService {
 
   async login(data: LoginUserDTO): Promise<AccessDTO> {
     const user = await this.usersRepository.getByEmail(data.email);
-    if (!user) throw new UnauthorizedException(ERROR_MESSAGE);
+    if (!user) throw new UnauthorizedException(WRONG_EMAIL_PASSWORD_ERROR);
 
     const matched = await Hasher.verify(user.hash, data.password);
+    if (!matched) throw new UnauthorizedException(WRONG_EMAIL_PASSWORD_ERROR);
 
-    if (!matched) throw new UnauthorizedException(ERROR_MESSAGE);
+    const { accessToken, refreshToken } = await this.generateTokens(
+      user.id,
+      user.name,
+    );
 
-    const payload = { sub: user.id, name: user.name };
+    const hashedRefreshToken = await Hasher.hash(refreshToken);
+    await this.usersRepository.updateRefreshToken(user.id, hashedRefreshToken);
 
     return {
       id: user.id,
       name: user.name,
       email: user.email,
       createdAt: user.createdAt,
-      token: await this.jwtService.signAsync(payload),
+      accessToken,
+      refreshToken,
     };
+  }
+
+  async refreshTokens(
+    refreshToken: string,
+  ): Promise<{ accessToken: string; refreshToken: string }> {
+    let payload: { sub: string; name: string };
+
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: process.env.JWT_REFRESH_SECRET,
+      });
+    } catch {
+      throw new UnauthorizedException(INVALID_REFRESH_TOKEN_ERROR);
+    }
+
+    const user = await this.usersRepository.getById(payload.sub);
+    if (!user?.refreshToken)
+      throw new UnauthorizedException(INVALID_REFRESH_TOKEN_ERROR);
+
+    const matched = await Hasher.verify(user.refreshToken, refreshToken);
+    if (!matched) throw new UnauthorizedException(INVALID_REFRESH_TOKEN_ERROR);
+
+    const { accessToken, refreshToken: newRefreshToken } =
+      await this.generateTokens(user.id, user.name);
+
+    const hashedRefreshToken = await Hasher.hash(newRefreshToken);
+    await this.usersRepository.updateRefreshToken(user.id, hashedRefreshToken);
+
+    return { accessToken, refreshToken: newRefreshToken };
+  }
+
+  private async generateTokens(userId: string, name: string) {
+    const payload = { sub: userId, name };
+
+    const accessToken = await this.jwtService.signAsync(payload);
+
+    const refreshToken = await this.jwtService.signAsync(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: '30d',
+    });
+
+    return { accessToken, refreshToken };
+  }
+
+  async clearRefreshToken(userId: string): Promise<void> {
+    await this.usersRepository.clearRefreshToken(userId);
   }
 }

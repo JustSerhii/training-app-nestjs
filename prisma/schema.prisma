@@ -41,6 +41,7 @@ model User {
   hash      String    @db.VarChar()
   createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
   workouts  Workout[]
+  refreshToken String? @db.VarChar(512) @map("refresh_token")
 
   @@map("user")
 }

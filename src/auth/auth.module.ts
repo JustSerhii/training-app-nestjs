@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { JwtModule } from '@nestjs/jwt';
 import { UsersModule } from 'src/users/users.module';
 
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = process.env.JWT_ACCESS_SECRET;
 if (!jwtSecret) {
   throw new Error('JWT_SECRET is not defined');
 }
@@ -18,7 +18,7 @@ if (!jwtSecret) {
       global: true,
       secret: jwtSecret,
       signOptions: {
-        expiresIn: '10h',
+        expiresIn: '2h',
       },
     }),
   ],
