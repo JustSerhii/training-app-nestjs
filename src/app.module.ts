@@ -12,6 +12,7 @@ import { WorkoutsModule } from './workouts/workouts.module';
 import { WorkoutExercisesModule } from './workout-exercises/workout-exercises.module';
 import { SetsModule } from './sets/sets.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
@@ -22,6 +23,9 @@ import { LoggerMiddleware } from './middleware/logger.middleware';
     WorkoutsModule,
     WorkoutExercisesModule,
     SetsModule,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
   ],
   controllers: [],
   providers: [],

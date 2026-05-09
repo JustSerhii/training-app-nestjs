@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma';
-import { ViewUserDTO } from './dto';
 import { USER_SELECT } from './user.select';
 import { RegisterUserDTO } from 'src/auth/dto';
 
@@ -31,7 +30,7 @@ export class UsersRepository {
     });
   }
 
-  async register(data: RegisterUserDTO, hash: string): Promise<ViewUserDTO> {
+  async register(data: RegisterUserDTO, hash: string) {
     return this.prisma.user.create({
       data: {
         name: data.name,
@@ -56,7 +55,7 @@ export class UsersRepository {
     });
   }
 
-  async clearRefreshToken(userId: string) {
+  async clearRefreshToken(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: {
         id: userId,

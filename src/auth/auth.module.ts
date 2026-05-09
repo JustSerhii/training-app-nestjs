@@ -20,6 +20,10 @@ if (!jwtSecret) {
       signOptions: {
         expiresIn: '2h',
       },
+      verifyOptions: {
+        algorithms: ['HS256'],
+        ignoreExpiration: false,
+      },
     }),
   ],
   exports: [],

@@ -16,4 +16,4 @@ const schema = convict({
 });
 
 schema.validate({ allowed: 'strict' });
-export const config = schema.getProperties();
+export const convictConfig = schema.getProperties();
