@@ -9,12 +9,17 @@ export class UsersRepository {
 
   async getById(userId: string) {
     return this.prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
+      where: { id: userId },
+      select: USER_SELECT,
+    });
+  }
+
+  async getByIdWithToken(userId: string) {
+    return this.prisma.user.findUnique({
+      where: { id: userId },
       select: {
-        refreshToken: true,
         ...USER_SELECT,
+        refreshToken: true,
       },
     });
   }

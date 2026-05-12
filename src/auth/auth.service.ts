@@ -1,4 +1,3 @@
-import { ViewUserDTO } from 'src/users/dto';
 import { AccessDTO, LoginUserDTO, RegisterUserDTO } from './dto';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Hasher } from 'src/common/models';
@@ -25,7 +24,7 @@ export class AuthService {
     this.COOKIE_DOMAIN = configService.getOrThrow<string>('COOKIE_DOMAIN');
   }
 
-  async register(res: Response, data: RegisterUserDTO): Promise<ViewUserDTO> {
+  async register(res: Response, data: RegisterUserDTO): Promise<AccessDTO> {
     const existingUser = await this.usersRepository.getByEmail(data.email);
 
     if (existingUser)
@@ -35,9 +34,15 @@ export class AuthService {
 
     const user = await this.usersRepository.register(data, hash);
 
-    await this.auth(res, user.id);
+    const { accessToken } = await this.auth(res, user.id);
 
-    return user;
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      createdAt: user.createdAt,
+      accessToken,
+    };
   }
 
   async login(res: Response, data: LoginUserDTO): Promise<AccessDTO> {
@@ -82,7 +87,7 @@ export class AuthService {
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN_ERROR);
     }
 
-    const user = await this.usersRepository.getById(payload.sub);
+    const user = await this.usersRepository.getByIdWithToken(payload.sub);
     if (!user?.refreshToken)
       throw new UnauthorizedException(INVALID_REFRESH_TOKEN_ERROR);
 

@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { WorkoutExercisesService } from './workout-exercises.service';
@@ -26,6 +25,7 @@ import {
   CursorPageOptionsDto,
   CursorPaginatedResponseDto,
 } from 'src/common/dto/cursor-pagination';
+import { User } from 'src/decorators';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth(SWAGGER_BEARER_NAME)
@@ -39,10 +39,10 @@ export class WorkoutExercisesController {
   createWorkoutExercise(
     @Param('workoutId') workoutId: string,
     @Body() data: CreateWorkoutExerciseDTO,
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
   ): Promise<ViewWorkoutExerciseDTO> {
     return this.workoutExercisesService.createWorkoutExercise(
-      req.user.sub,
+      user.sub,
       workoutId,
       data,
     );
@@ -51,11 +51,11 @@ export class WorkoutExercisesController {
   @Patch('reorder')
   reorderWorkoutExercises(
     @Param('workoutId') workoutId: string,
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Body() data: ReorderWorkoutExercisesDTO,
   ): Promise<ViewWorkoutExerciseDTO[]> {
     return this.workoutExercisesService.reorderWorkoutExercises(
-      req.user.sub,
+      user.sub,
       workoutId,
       data,
     );
@@ -66,10 +66,10 @@ export class WorkoutExercisesController {
     @Param('workoutId') workoutId: string,
     @Param('workoutExerciseId')
     workoutExerciseId: string,
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
   ): Promise<ViewWorkoutExerciseDTO> {
     return this.workoutExercisesService.getWorkoutExercise(
-      req.user.sub,
+      user.sub,
       workoutId,
       workoutExerciseId,
     );
@@ -78,11 +78,11 @@ export class WorkoutExercisesController {
   @Get()
   getWorkoutExercises(
     @Param('workoutId') workoutId: string,
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Query() query: CursorPageOptionsDto,
   ): Promise<CursorPaginatedResponseDto<ViewWorkoutExerciseDTO>> {
     return this.workoutExercisesService.getWorkoutExercises(
-      req.user.sub,
+      user.sub,
       workoutId,
       query,
     );
@@ -94,10 +94,10 @@ export class WorkoutExercisesController {
     @Param('workoutExerciseId')
     workoutExerciseId: string,
     @Body() data: UpdateWorkoutExerciseDTO,
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
   ): Promise<ViewWorkoutExerciseDTO> {
     return this.workoutExercisesService.updateWorkoutExercise(
-      req.user.sub,
+      user.sub,
       workoutId,
       workoutExerciseId,
       data,
@@ -107,12 +107,12 @@ export class WorkoutExercisesController {
   @HttpCode(204)
   @Delete(':workoutExerciseId')
   deletWorkoutExercise(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
     @Param('workoutId') workoutId: string,
   ): Promise<void> {
     return this.workoutExercisesService.deleteWorkoutExercise(
-      req.user.sub,
+      user.sub,
       workoutId,
       workoutExerciseId,
     );

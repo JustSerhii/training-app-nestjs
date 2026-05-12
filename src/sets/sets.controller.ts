@@ -7,7 +7,6 @@ import {
   Param,
   Patch,
   Post,
-  Req,
   UseGuards,
 } from '@nestjs/common';
 import { SetsService } from './sets.service';
@@ -16,6 +15,7 @@ import * as types from 'src/auth/types';
 import { AuthGuard } from 'src/auth/guards';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { SWAGGER_BEARER_NAME } from 'src/common';
+import { User } from 'src/decorators';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth(SWAGGER_BEARER_NAME)
@@ -25,61 +25,56 @@ export class SetsController {
 
   @Post()
   createSet(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Body() data: CreateSetDTO,
     @Param('workoutExerciseId') workoutExerciseId: string,
   ): Promise<ViewSetDTO> {
-    return this.setsService.createSet(req.user.sub, workoutExerciseId, data);
+    return this.setsService.createSet(user.sub, workoutExerciseId, data);
   }
 
   @Get(':setId')
   getSet(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
     @Param('setId') setId: string,
   ): Promise<ViewSetDTO> {
-    return this.setsService.getSet(req.user.sub, workoutExerciseId, setId);
+    return this.setsService.getSet(user.sub, workoutExerciseId, setId);
   }
 
   @Get()
   getSets(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
   ): Promise<ViewSetDTO[]> {
-    return this.setsService.getSets(req.user.sub, workoutExerciseId);
+    return this.setsService.getSets(user.sub, workoutExerciseId);
   }
 
   @Patch('reorder')
   reorderSets(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
     @Body() data: ReorderSetsDTO,
   ): Promise<ViewSetDTO[]> {
-    return this.setsService.reorderSets(req.user.sub, workoutExerciseId, data);
+    return this.setsService.reorderSets(user.sub, workoutExerciseId, data);
   }
 
   @Patch(':setId')
   updateSet(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
     @Param('setId') setId: string,
     @Body() data: UpdateSetDTO,
   ): Promise<ViewSetDTO> {
-    return this.setsService.updateSet(
-      req.user.sub,
-      workoutExerciseId,
-      setId,
-      data,
-    );
+    return this.setsService.updateSet(user.sub, workoutExerciseId, setId, data);
   }
 
   @HttpCode(204)
   @Delete(':setId')
   deleteSet(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Param('workoutExerciseId') workoutExerciseId: string,
     @Param('setId') setId: string,
   ): Promise<void> {
-    return this.setsService.deleteSet(req.user.sub, workoutExerciseId, setId);
+    return this.setsService.deleteSet(user.sub, workoutExerciseId, setId);
   }
 }
