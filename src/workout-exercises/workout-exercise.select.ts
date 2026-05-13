@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { SET_SELECT } from 'src/sets';
 
 export const WORKOUT_EXERCISE_SELECT = {
@@ -20,4 +21,4 @@ export const WORKOUT_EXERCISE_SELECT = {
       order: 'asc',
     },
   },
-} as const;
+} satisfies Prisma.WorkoutExerciseSelect;

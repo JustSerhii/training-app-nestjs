@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+
 export const SET_SELECT = {
   id: true,
   weight: true,
@@ -5,4 +7,4 @@ export const SET_SELECT = {
   reps: true,
   type: true,
   workoutExerciseId: true,
-} as const;
+} satisfies Prisma.SetSelect;

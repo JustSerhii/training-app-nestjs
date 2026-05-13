@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma';
-import { CreateSetDTO, ReorderSetsDTO, UpdateSetDTO, ViewSetDTO } from './dto';
+import { ReorderSetsDTO } from './dto';
 import { SetType } from '@prisma/client';
 import { SET_SELECT } from './set.select';
+import {
+  CreateSetData,
+  SetEntity,
+  UpdateSetData,
+} from './sets.repository.types';
 
 @Injectable()
 export class SetsRepository {
@@ -10,9 +15,9 @@ export class SetsRepository {
 
   async create(
     workoutExerciseId: string,
-    data: CreateSetDTO,
+    data: CreateSetData,
     order: number,
-  ): Promise<ViewSetDTO> {
+  ): Promise<SetEntity> {
     return this.prisma.set.create({
       data: {
         weight: data.weight,
@@ -38,7 +43,7 @@ export class SetsRepository {
   async findFirst(
     workoutExerciseId: string,
     setId: string,
-  ): Promise<ViewSetDTO | null> {
+  ): Promise<SetEntity | null> {
     return this.prisma.set.findFirst({
       where: {
         workoutExerciseId,
@@ -48,7 +53,7 @@ export class SetsRepository {
     });
   }
 
-  async findMany(workoutExerciseId: string): Promise<ViewSetDTO[]> {
+  async findMany(workoutExerciseId: string): Promise<SetEntity[]> {
     return this.prisma.set.findMany({
       where: {
         workoutExerciseId,
@@ -58,7 +63,7 @@ export class SetsRepository {
     });
   }
 
-  async update(setId: string, data: UpdateSetDTO): Promise<ViewSetDTO> {
+  async update(setId: string, data: UpdateSetData): Promise<SetEntity> {
     return this.prisma.set.update({
       where: {
         id: setId,
@@ -107,7 +112,7 @@ export class SetsRepository {
   async reorder(
     data: ReorderSetsDTO,
     workoutExerciseId: string,
-  ): Promise<ViewSetDTO[]> {
+  ): Promise<SetEntity[]> {
     return this.prisma.$transaction(
       data.setIds.map((id, index) =>
         this.prisma.set.update({

@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma';
-import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
-import { WORKOUT_SELECT } from './workouts.select';
-import { WORKOUT_EXERCISE_SELECT } from 'src/workout-exercises';
-import { ViewFullWorkoutDTO } from './dto/ViewFullWorkoutDTO.dto';
+import { FULL_WORKOUT_SELECT, WORKOUT_SELECT } from './workouts.select';
+import {
+  WorkoutEntity,
+  FullWorkoutEntity,
+  CreateWorkoutData,
+  UpdateWorkoutData,
+} from './workouts.repository.types';
 import { PaginationDto } from 'src/common/dto/offset-pagination';
 
 @Injectable()
@@ -12,8 +15,8 @@ export class WorkoutsRepository {
 
   async create(
     userId: string,
-    data: CreateWorkoutDTO,
-  ): Promise<ViewWorkoutDTO> {
+    data: CreateWorkoutData,
+  ): Promise<WorkoutEntity> {
     return this.prisma.workout.create({
       data: {
         ...data,
@@ -23,7 +26,7 @@ export class WorkoutsRepository {
     });
   }
 
-  async findMany(userId: string): Promise<ViewWorkoutDTO[]> {
+  async findMany(userId: string): Promise<WorkoutEntity[]> {
     return this.prisma.workout.findMany({
       where: {
         userId,
@@ -35,7 +38,7 @@ export class WorkoutsRepository {
   async findFirst(
     userId: string,
     workoutId: string,
-  ): Promise<ViewWorkoutDTO | null> {
+  ): Promise<WorkoutEntity | null> {
     return this.prisma.workout.findFirst({
       where: {
         userId,
@@ -48,23 +51,17 @@ export class WorkoutsRepository {
   async findFull(
     userId: string,
     workoutId: string,
-  ): Promise<ViewFullWorkoutDTO | null> {
+  ): Promise<FullWorkoutEntity | null> {
     return this.prisma.workout.findFirst({
       where: { id: workoutId, userId },
-      select: {
-        ...WORKOUT_SELECT,
-        workoutExercises: {
-          select: WORKOUT_EXERCISE_SELECT,
-          orderBy: { order: 'asc' },
-        },
-      },
+      select: FULL_WORKOUT_SELECT,
     });
   }
 
   async findManyPaginated(
     userId: string,
     pagination: PaginationDto,
-  ): Promise<{ data: ViewWorkoutDTO[]; total: number }> {
+  ): Promise<{ data: WorkoutEntity[]; total: number }> {
     const [data, total] = await this.prisma.$transaction([
       this.prisma.workout.findMany({
         where: {
@@ -97,8 +94,8 @@ export class WorkoutsRepository {
 
   async update(
     workoutId: string,
-    data: UpdateWorkoutDTO,
-  ): Promise<ViewWorkoutDTO> {
+    data: UpdateWorkoutData,
+  ): Promise<WorkoutEntity> {
     return this.prisma.workout.update({
       where: {
         id: workoutId,
