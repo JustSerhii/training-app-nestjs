@@ -19,6 +19,7 @@ import { ViewUserDTO } from 'src/users/dto';
 import { AuthService } from './auth.service';
 import * as types from './types';
 import { AuthGuard } from './guards';
+import { User } from 'src/decorators';
 
 @Controller('auth')
 export class AuthController {
@@ -52,9 +53,9 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   logout(
-    @Req() req: types.AuthRequest,
+    @User() user: types.JwtPayload,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    return this.authService.logout(req.user.sub, res);
+    return this.authService.logout(user.sub, res);
   }
 }
