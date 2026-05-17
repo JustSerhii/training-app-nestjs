@@ -1,6 +1,6 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { ViewUserDTO } from './dto';
+import { UpdateUserDto, ViewUserDTO } from './dto';
 import { AuthGuard } from 'src/auth/guards';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { SWAGGER_BEARER_NAME } from 'src/common';
@@ -16,5 +16,13 @@ export class UsersController {
   @Get('me')
   getUser(@User() user: types.JwtPayload): Promise<ViewUserDTO> {
     return this.usersService.getUser(user.sub);
+  }
+
+  @Patch('me')
+  updateUser(
+    @User() user: types.JwtPayload,
+    @Body() data: UpdateUserDto,
+  ): Promise<ViewUserDTO> {
+    return this.usersService.updateUser(user.sub, data);
   }
 }
