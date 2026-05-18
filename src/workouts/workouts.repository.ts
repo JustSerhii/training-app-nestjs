@@ -104,4 +104,13 @@ export class WorkoutsRepository {
       select: WORKOUT_SELECT,
     });
   }
+
+  async findWorkoutExerciseIds(
+    workoutId: string,
+  ): Promise<{ id: string; exerciseId: string }[]> {
+    return this.prisma.workoutExercise.findMany({
+      where: { workoutId },
+      select: { id: true, exerciseId: true },
+    });
+  }
 }

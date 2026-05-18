@@ -7,12 +7,18 @@ import {
   PaginationDto,
   PaginationMetaDto,
 } from 'src/common/dto/offset-pagination';
+import { SetsRepository } from 'src/sets/sets.repository';
+import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
 
 @Injectable()
 export class WorkoutsService {
-  constructor(private readonly workoutsRepository: WorkoutsRepository) {}
+  constructor(
+    private readonly workoutsRepository: WorkoutsRepository,
+    private readonly setsRepository: SetsRepository,
+    private readonly exerciseRecordsService: ExerciseRecordsService,
+  ) {}
 
   async createWorkout(
     userId: string,
@@ -53,8 +59,34 @@ export class WorkoutsService {
   }
 
   async deleteWorkout(userId: string, workoutId: string): Promise<void> {
+    const workoutExercises =
+      await this.workoutsRepository.findWorkoutExerciseIds(workoutId);
+    const exerciseIds = [
+      ...new Set(workoutExercises.map((we) => we.exerciseId)),
+    ];
+
+    const setsByExercise = await Promise.all(
+      exerciseIds.map(async (exerciseId) => ({
+        exerciseId,
+        sets: await this.setsRepository.findAllSets(userId, exerciseId),
+      })),
+    );
+
     const count = await this.workoutsRepository.deleteOne(userId, workoutId);
     if (count === 0) throw new NotFoundException(WORKOUT_NOT_FOUND);
+
+    await Promise.all(
+      setsByExercise.map(({ exerciseId, sets }) => {
+        const remainingSets = sets.filter(
+          (s) => !workoutExercises.some((we) => we.id === s.workoutExerciseId),
+        );
+        return this.exerciseRecordsService.recalculateRecord(
+          userId,
+          exerciseId,
+          remainingSets,
+        );
+      }),
+    );
   }
 
   async updateWorkout(

@@ -4,16 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import {
-  CreateSetDTO,
-  ExerciseRecordDTO,
-  ReorderSetsDTO,
-  UpdateSetDTO,
-  ViewSetDTO,
-} from './dto';
+import { CreateSetDTO, ReorderSetsDTO, UpdateSetDTO, ViewSetDTO } from './dto';
 import { SetsRepository } from './sets.repository';
 import { WorkoutsExercisesRepository } from 'src/workout-exercises/workout-exercises.repository';
 import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
+import { ExerciseRecordDTO } from 'src/exercise-records/dto';
 
 const SET_NOT_FOUND = 'set not found';
 
