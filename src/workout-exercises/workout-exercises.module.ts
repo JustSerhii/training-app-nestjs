@@ -3,11 +3,13 @@ import { WorkoutExercisesController } from './workout-exercises.controller';
 import { WorkoutExercisesService } from './workout-exercises.service';
 import { WorkoutsExercisesRepository } from './workout-exercises.repository';
 import { WorkoutsModule } from 'src/workouts/workouts.module';
+import { ExerciseRecordModule } from 'src/exercise-records/exercise-records.module';
+import { SetsRepositoryModule } from 'src/sets/sets-repository.module';
 
 @Module({
   controllers: [WorkoutExercisesController],
   providers: [WorkoutExercisesService, WorkoutsExercisesRepository],
-  imports: [WorkoutsModule],
+  imports: [WorkoutsModule, ExerciseRecordModule, SetsRepositoryModule],
   exports: [WorkoutsExercisesRepository],
 })
 export class WorkoutExercisesModule {}

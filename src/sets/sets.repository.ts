@@ -63,6 +63,24 @@ export class SetsRepository {
     });
   }
 
+  async findAllSets(userId: string, exerciseId: string) {
+    return this.prisma.set.findMany({
+      where: {
+        workoutExercise: {
+          exerciseId,
+          workout: {
+            userId,
+          },
+        },
+      },
+      select: {
+        weight: true,
+        reps: true,
+        workoutExerciseId: true,
+      },
+    });
+  }
+
   async update(setId: string, data: UpdateSetData): Promise<SetEntity> {
     return this.prisma.set.update({
       where: {

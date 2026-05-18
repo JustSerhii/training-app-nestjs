@@ -35,13 +35,15 @@ enum SetType {
 }
 
 model User {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @db.VarChar()
-  email     String    @unique @db.VarChar()
-  hash      String    @db.VarChar()
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz()
-  workouts  Workout[]
-  refreshToken String? @db.VarChar(512) @map("refresh_token")
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String           @db.VarChar()
+  email           String           @unique @db.VarChar()
+  bodyWeight      Float?           @map("body_weight") @db.Real
+  hash            String           @db.VarChar()
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz()
+  workouts        Workout[]
+  refreshToken    String?          @map("refresh_token") @db.VarChar(512)
+  exerciseRecords ExerciseRecord[]
 
   @@map("user")
 }
@@ -63,6 +65,7 @@ model Exercise {
   title            String            @unique @db.VarChar()
   muscleGroups     MuscleGroup[]     @map("muscle_groups")
   workoutExercises WorkoutExercise[]
+  exerciseRecords  ExerciseRecord[]
 
   @@map("exercise")
 }
@@ -89,9 +92,26 @@ model Set {
   workoutExerciseId String          @map("workout_exercise_id") @db.Uuid
   workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
   weight            Float?          @default(0) @db.Real
-  order             Int             @db.Integer 
+  order             Int             @db.Integer
   reps              Int             @db.Integer
   type              SetType         @default(normal)
 
   @@map("set")
+}
+
+model ExerciseRecord {
+  id         String   @id @default(uuid())
+  userId     String @map("user_id") @db.Uuid()
+  exerciseId String @map("exercise_id") @db.Uuid()
+  maxWeight  Float @map("max_weight") @db.Real
+  maxReps    Int @map("max_reps") @db.Integer
+  maxVolume  Float @map("max_volume") @db.Real
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, exerciseId])
+
+  @@map("exercise_record")
 }

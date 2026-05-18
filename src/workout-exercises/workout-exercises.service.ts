@@ -18,6 +18,8 @@ import {
   CursorPaginationMetaDto,
 } from 'src/common/dto/cursor-pagination';
 import { decodeCursor, encodeCursor } from 'src/common/utils';
+import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
+import { SetsRepository } from 'src/sets/sets.repository';
 
 const WORKOUT_EXERCISE_NOT_FOUND = 'no workout exercise found';
 
@@ -26,6 +28,8 @@ export class WorkoutExercisesService {
   constructor(
     private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
     private readonly workoutsRepository: WorkoutsRepository,
+    private readonly exerciseRecordsService: ExerciseRecordsService,
+    private readonly setsRepository: SetsRepository,
   ) {}
 
   async createWorkoutExercise(
@@ -109,11 +113,31 @@ export class WorkoutExercisesService {
     workoutExerciseId: string,
   ): Promise<void> {
     await this.assertWorkoutOwner(userId, workoutId);
+
+    const exercise =
+      await this.workoutExercisesRepository.findExercise(workoutExerciseId);
+    if (!exercise?.exerciseId) throw new NotFoundException('No such exercise');
+
+    const allSetsBeforeDelete = await this.setsRepository.findAllSets(
+      userId,
+      exercise.exerciseId,
+    );
+
     const count = await this.workoutExercisesRepository.deleteOne(
       workoutId,
       workoutExerciseId,
     );
     if (count === 0) throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+
+    const remainingSets = allSetsBeforeDelete.filter(
+      (s) => s.workoutExerciseId !== workoutExerciseId,
+    );
+
+    await this.exerciseRecordsService.recalculateRecord(
+      userId,
+      exercise.exerciseId,
+      remainingSets,
+    );
   }
 
   async reorderWorkoutExercises(

@@ -195,4 +195,15 @@ export class WorkoutsExercisesRepository {
       ),
     );
   }
+
+  async findExercise(workoutExerciseId: string) {
+    return this.prisma.workoutExercise.findFirst({
+      where: {
+        id: workoutExerciseId,
+      },
+      select: {
+        exerciseId: true,
+      },
+    });
+  }
 }

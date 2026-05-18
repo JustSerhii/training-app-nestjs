@@ -4,9 +4,16 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CreateSetDTO, ReorderSetsDTO, UpdateSetDTO, ViewSetDTO } from './dto';
+import {
+  CreateSetDTO,
+  ExerciseRecordDTO,
+  ReorderSetsDTO,
+  UpdateSetDTO,
+  ViewSetDTO,
+} from './dto';
 import { SetsRepository } from './sets.repository';
 import { WorkoutsExercisesRepository } from 'src/workout-exercises/workout-exercises.repository';
+import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
 
 const SET_NOT_FOUND = 'set not found';
 
@@ -15,6 +22,7 @@ export class SetsService {
   constructor(
     private readonly setsRepository: SetsRepository,
     private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
+    private readonly exerciseRecordsRepository: ExerciseRecordRepository,
   ) {}
 
   async createSet(
@@ -28,7 +36,46 @@ export class SetsService {
 
     const order = lastSet ? lastSet.order + 1 : 1;
 
-    return this.setsRepository.create(workoutExerciseId, data, order);
+    const set = await this.setsRepository.create(
+      workoutExerciseId,
+      data,
+      order,
+    );
+
+    const exercise =
+      await this.workoutExercisesRepository.findExercise(workoutExerciseId);
+    if (!exercise?.exerciseId) throw new NotFoundException('No such exercise');
+    const record = await this.exerciseRecordsRepository.findRecord(
+      userId,
+      exercise.exerciseId,
+    );
+
+    const weight = set.weight ?? 0;
+
+    if (!record) {
+      await this.exerciseRecordsRepository.upsertRecord(
+        userId,
+        exercise.exerciseId,
+        {},
+        { maxWeight: weight, maxReps: set.reps, maxVolume: weight * set.reps },
+      );
+    } else {
+      const updates = ExerciseRecordDTO.calcUpdates(record, weight, set.reps);
+      if (updates) {
+        await this.exerciseRecordsRepository.upsertRecord(
+          userId,
+          exercise.exerciseId,
+          updates,
+          {
+            maxWeight: record.maxWeight,
+            maxReps: record.maxReps,
+            maxVolume: record.maxVolume,
+          },
+        );
+      }
+    }
+
+    return set;
   }
 
   async getSet(
@@ -72,6 +119,46 @@ export class SetsService {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
     const count = await this.setsRepository.deleteOne(workoutExerciseId, setId);
     if (count === 0) throw new NotFoundException(SET_NOT_FOUND);
+
+    const exercise =
+      await this.workoutExercisesRepository.findExercise(workoutExerciseId);
+    if (!exercise?.exerciseId) throw new NotFoundException('No such exercise');
+
+    const allSets = await this.setsRepository.findAllSets(
+      userId,
+      exercise.exerciseId,
+    );
+
+    if (allSets.length === 0) {
+      await this.exerciseRecordsRepository.deleteRecord(
+        userId,
+        exercise.exerciseId,
+      );
+      return;
+    }
+
+    const newRecord = allSets.reduce(
+      (best, set) => {
+        const weight = set.weight ?? 0;
+        const volume = weight * set.reps;
+        return {
+          maxWeight: Math.max(best.maxWeight, weight),
+          maxReps:
+            weight >= best.maxWeight
+              ? Math.max(best.maxReps, set.reps)
+              : best.maxReps,
+          maxVolume: Math.max(best.maxVolume, volume),
+        };
+      },
+      { maxWeight: 0, maxReps: 0, maxVolume: 0 },
+    );
+
+    await this.exerciseRecordsRepository.upsertRecord(
+      userId,
+      exercise.exerciseId,
+      newRecord,
+      newRecord,
+    );
   }
 
   async reorderSets(
