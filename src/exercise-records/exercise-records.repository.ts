@@ -45,4 +45,18 @@ export class ExerciseRecordRepository {
       },
     });
   }
+
+  async findAllRecordsByUser(userId: string) {
+    return this.prisma.exerciseRecord.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        maxWeight: true,
+        maxReps: true,
+        maxVolume: true,
+        exerciseId: true,
+      },
+    });
+  }
 }

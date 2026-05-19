@@ -3,11 +3,13 @@ export class ExerciseRecordDTO {
   maxReps: number;
   maxVolume: number;
   estimatedOneRepMax: number;
+  exerciseId: string;
 
-  constructor(weight: number, reps: number) {
+  constructor(weight: number, reps: number, exerciseId: string) {
     this.maxWeight = weight;
     this.maxReps = reps;
     this.maxVolume = weight * reps;
+    this.exerciseId = exerciseId;
     this.estimatedOneRepMax = ExerciseRecordDTO.calcOneRepMax(weight, reps);
   }
 

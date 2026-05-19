@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ExerciseRecordRepository } from './exercise-records.repository';
+import { ExerciseRecordDTO } from './dto';
 
 @Injectable()
 export class ExerciseRecordsService {
@@ -38,6 +39,20 @@ export class ExerciseRecordsService {
       exerciseId,
       newRecord,
       newRecord,
+    );
+  }
+
+  async getAllRecordsByUser(userId: string): Promise<ExerciseRecordDTO[] | []> {
+    const records =
+      await this.exerciseRecordsRepository.findAllRecordsByUser(userId);
+    if (!records || records.length === 0) return [];
+    return records.map(
+      (record) =>
+        new ExerciseRecordDTO(
+          record.maxWeight,
+          record.maxReps,
+          record.exerciseId,
+        ),
     );
   }
 }

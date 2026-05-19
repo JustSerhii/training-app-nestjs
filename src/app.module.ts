@@ -13,6 +13,7 @@ import { WorkoutExercisesModule } from './workout-exercises/workout-exercises.mo
 import { SetsModule } from './sets/sets.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ConfigModule } from '@nestjs/config';
+import { ExerciseRecordModule } from './exercise-records/exercise-records.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { ConfigModule } from '@nestjs/config';
     WorkoutsModule,
     WorkoutExercisesModule,
     SetsModule,
+    ExerciseRecordModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),
