@@ -44,6 +44,7 @@ model User {
   workouts        Workout[]
   refreshToken    String?          @map("refresh_token") @db.VarChar(512)
   exerciseRecords ExerciseRecord[]
+  routines        Routine[]
 
   @@map("user")
 }
@@ -66,6 +67,7 @@ model Exercise {
   muscleGroups     MuscleGroup[]     @map("muscle_groups")
   workoutExercises WorkoutExercise[]
   exerciseRecords  ExerciseRecord[]
+  routineExercises RoutineExercise[]
 
   @@map("exercise")
 }
@@ -101,17 +103,61 @@ model Set {
 
 model ExerciseRecord {
   id         String   @id @default(uuid())
-  userId     String @map("user_id") @db.Uuid()
-  exerciseId String @map("exercise_id") @db.Uuid()
-  maxWeight  Float @map("max_weight") @db.Real
-  maxReps    Int @map("max_reps") @db.Integer
-  maxVolume  Float @map("max_volume") @db.Real
+  userId     String   @map("user_id") @db.Uuid()
+  exerciseId String   @map("exercise_id") @db.Uuid()
+  maxWeight  Float    @map("max_weight") @db.Real
+  maxReps    Int      @map("max_reps") @db.Integer
+  maxVolume  Float    @map("max_volume") @db.Real
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   exercise Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, exerciseId])
-
   @@map("exercise_record")
+}
+
+model Routine {
+  id     String @id @default(uuid()) @db.Uuid
+  userId String @map("user_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title       String  @db.VarChar()
+  description String? @db.VarChar()
+
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz()
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz()
+
+  exercises RoutineExercise[]
+
+  @@map("routine")
+}
+
+model RoutineExercise {
+  id String @id @default(uuid()) @db.Uuid
+
+  routineId String  @map("routine_id") @db.Uuid
+  routine   Routine @relation(fields: [routineId], references: [id], onDelete: Cascade)
+
+  exerciseId String   @map("exercise_id") @db.Uuid
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Cascade)
+
+  order Int          @db.Integer
+  sets  RoutineSet[]
+
+  @@map("routine_exercise")
+}
+
+model RoutineSet {
+  id String @id @default(uuid()) @db.Uuid
+
+  routineExerciseId String          @map("routine_exercise_id") @db.Uuid
+  routineExercise   RoutineExercise @relation(fields: [routineExerciseId], references: [id], onDelete: Cascade)
+
+  targetReps   Int     @map("target_reps") @db.Integer
+  targetWeight Float?  @map("target_weight") @db.Real
+  type         SetType @default(normal)
+  order        Int     @db.Integer
+
+  @@map("routine_set")
 }
