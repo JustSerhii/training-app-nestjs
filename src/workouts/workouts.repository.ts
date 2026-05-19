@@ -8,6 +8,7 @@ import {
   UpdateWorkoutData,
 } from './workouts.repository.types';
 import { PaginationDto } from 'src/common/dto/offset-pagination';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class WorkoutsRepository {
@@ -62,11 +63,23 @@ export class WorkoutsRepository {
     userId: string,
     pagination: PaginationDto,
   ): Promise<{ data: WorkoutEntity[]; total: number }> {
+    const where: Prisma.WorkoutWhereInput = { userId };
+
+    if (pagination.search?.trim()) {
+      where.OR = [
+        { title: { contains: pagination.search.trim(), mode: 'insensitive' } },
+        {
+          description: {
+            contains: pagination.search.trim(),
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
+
     const [data, total] = await this.prisma.$transaction([
       this.prisma.workout.findMany({
-        where: {
-          userId,
-        },
+        where,
         select: WORKOUT_SELECT,
         skip: pagination.skip,
         take: pagination.limit,
@@ -74,9 +87,7 @@ export class WorkoutsRepository {
       }),
 
       this.prisma.workout.count({
-        where: {
-          userId,
-        },
+        where,
       }),
     ]);
     return { data, total };
