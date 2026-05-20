@@ -105,8 +105,13 @@ model ExerciseRecord {
   id         String   @id @default(uuid())
   userId     String   @map("user_id") @db.Uuid()
   exerciseId String   @map("exercise_id") @db.Uuid()
-  maxWeight  Float    @map("max_weight") @db.Real
-  maxReps    Int      @map("max_reps") @db.Integer
+  
+  maxWeight  Float    @map("max_weight") @db.Real  
+  maxReps    Int      @map("max_reps") @db.Integer  
+
+  bestWeight Float    @map("best_weight") @db.Real  
+  bestReps   Int      @map("best_reps") @db.Integer 
+
   maxVolume  Float    @map("max_volume") @db.Real
   updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz()
 

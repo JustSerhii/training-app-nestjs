@@ -1,16 +1,33 @@
 export class ExerciseRecordDTO {
   maxWeight: number;
   maxReps: number;
+  bestWeight: number;
+  bestReps: number;
   maxVolume: number;
   estimatedOneRepMax: number;
   exerciseId: string;
+  exerciseTitle: string;
 
-  constructor(weight: number, reps: number, exerciseId: string) {
-    this.maxWeight = weight;
-    this.maxReps = reps;
-    this.maxVolume = weight * reps;
+  constructor(
+    maxWeight: number,
+    maxReps: number,
+    bestWeight: number,
+    bestReps: number,
+    maxVolume: number,
+    exerciseId: string,
+    exerciseTitle: string,
+  ) {
+    this.maxWeight = maxWeight;
+    this.maxReps = maxReps;
+    this.bestWeight = bestWeight;
+    this.bestReps = bestReps;
+    this.maxVolume = maxVolume;
+    this.estimatedOneRepMax = ExerciseRecordDTO.calcOneRepMax(
+      bestWeight,
+      bestReps,
+    );
     this.exerciseId = exerciseId;
-    this.estimatedOneRepMax = ExerciseRecordDTO.calcOneRepMax(weight, reps);
+    this.exerciseTitle = exerciseTitle;
   }
 
   static calcOneRepMax(weight: number, reps: number): number {
@@ -19,21 +36,35 @@ export class ExerciseRecordDTO {
   }
 
   static calcUpdates(
-    current: { maxWeight: number; maxReps: number; maxVolume: number },
+    current: {
+      maxWeight: number;
+      maxReps: number;
+      bestWeight: number;
+      bestReps: number;
+      maxVolume: number;
+    },
     newWeight: number,
     newReps: number,
-  ): Partial<{ maxWeight: number; maxReps: number; maxVolume: number }> | null {
+  ): Partial<{
+    maxWeight: number;
+    maxReps: number;
+    bestWeight: number;
+    bestReps: number;
+    maxVolume: number;
+  }> | null {
     const updates: Partial<{
       maxWeight: number;
       maxReps: number;
+      bestWeight: number;
+      bestReps: number;
       maxVolume: number;
     }> = {};
 
     const newVolume = newWeight * newReps;
     const newOneRepMax = ExerciseRecordDTO.calcOneRepMax(newWeight, newReps);
     const currentOneRepMax = ExerciseRecordDTO.calcOneRepMax(
-      current.maxWeight,
-      current.maxReps,
+      current.bestWeight,
+      current.bestReps,
     );
 
     if (newWeight > current.maxWeight) {
@@ -41,13 +72,13 @@ export class ExerciseRecordDTO {
       updates.maxReps = newReps;
     }
 
-    if (newVolume > current.maxVolume) {
-      updates.maxVolume = newVolume;
+    if (newOneRepMax > currentOneRepMax) {
+      updates.bestWeight = newWeight;
+      updates.bestReps = newReps;
     }
 
-    if (newOneRepMax > currentOneRepMax && !updates.maxWeight) {
-      updates.maxWeight = newWeight;
-      updates.maxReps = newReps;
+    if (newVolume > current.maxVolume) {
+      updates.maxVolume = newVolume;
     }
 
     return Object.keys(updates).length > 0 ? updates : null;

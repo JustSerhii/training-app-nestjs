@@ -52,7 +52,13 @@ export class SetsService {
         userId,
         exercise.exerciseId,
         {},
-        { maxWeight: weight, maxReps: set.reps, maxVolume: weight * set.reps },
+        {
+          maxWeight: weight,
+          maxReps: set.reps,
+          bestWeight: weight,
+          bestReps: set.reps,
+          maxVolume: weight * set.reps,
+        },
       );
     } else {
       const updates = ExerciseRecordDTO.calcUpdates(record, weight, set.reps);
@@ -64,6 +70,8 @@ export class SetsService {
           {
             maxWeight: record.maxWeight,
             maxReps: record.maxReps,
+            bestWeight: record.bestWeight,
+            bestReps: record.bestReps,
             maxVolume: record.maxVolume,
           },
         );
@@ -136,16 +144,24 @@ export class SetsService {
       (best, set) => {
         const weight = set.weight ?? 0;
         const volume = weight * set.reps;
+        const oneRepMax = ExerciseRecordDTO.calcOneRepMax(weight, set.reps);
+        const bestOneRepMax = ExerciseRecordDTO.calcOneRepMax(
+          best.bestWeight,
+          best.bestReps,
+        );
+
         return {
           maxWeight: Math.max(best.maxWeight, weight),
           maxReps:
             weight >= best.maxWeight
               ? Math.max(best.maxReps, set.reps)
               : best.maxReps,
+          bestWeight: oneRepMax > bestOneRepMax ? weight : best.bestWeight,
+          bestReps: oneRepMax > bestOneRepMax ? set.reps : best.bestReps,
           maxVolume: Math.max(best.maxVolume, volume),
         };
       },
-      { maxWeight: 0, maxReps: 0, maxVolume: 0 },
+      { maxWeight: 0, maxReps: 0, bestWeight: 0, bestReps: 0, maxVolume: 0 },
     );
 
     await this.exerciseRecordsRepository.upsertRecord(

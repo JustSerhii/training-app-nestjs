@@ -55,7 +55,12 @@ export class ExerciseRecordRepository {
         maxWeight: true,
         maxReps: true,
         maxVolume: true,
+        bestWeight: true,
+        bestReps: true,
         exerciseId: true,
+        exercise: {
+          select: { title: true },
+        },
       },
     });
   }
