@@ -74,17 +74,21 @@ export class WorkoutsService {
 
     const count = await this.workoutsRepository.deleteOne(userId, workoutId);
     if (count === 0) throw new NotFoundException(WORKOUT_NOT_FOUND);
+    if (setsByExercise.length <= 0) return;
 
     await Promise.all(
       setsByExercise.map(({ exerciseId, sets }) => {
         const remainingSets = sets.filter(
           (s) => !workoutExercises.some((we) => we.id === s.workoutExerciseId),
         );
-        return this.exerciseRecordsService.recalculateRecord(
-          userId,
-          exerciseId,
-          remainingSets,
-        );
+        if (remainingSets.length > 0) {
+          return this.exerciseRecordsService.recalculateRecord(
+            userId,
+            exerciseId,
+            remainingSets,
+          );
+        }
+        return Promise.resolve();
       }),
     );
   }

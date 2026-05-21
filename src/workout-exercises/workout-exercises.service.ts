@@ -128,16 +128,18 @@ export class WorkoutExercisesService {
       workoutExerciseId,
     );
     if (count === 0) throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
+    if (allSetsBeforeDelete.length <= 0) return;
 
     const remainingSets = allSetsBeforeDelete.filter(
       (s) => s.workoutExerciseId !== workoutExerciseId,
     );
-
-    await this.exerciseRecordsService.recalculateRecord(
-      userId,
-      exercise.exerciseId,
-      remainingSets,
-    );
+    if (remainingSets.length > 0) {
+      await this.exerciseRecordsService.recalculateRecord(
+        userId,
+        exercise.exerciseId,
+        remainingSets,
+      );
+    }
   }
 
   async reorderWorkoutExercises(
