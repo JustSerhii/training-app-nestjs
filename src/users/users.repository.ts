@@ -79,7 +79,9 @@ export class UsersRepository {
       },
       data: {
         name: data.name,
+        bodyWeight: data.bodyWeight,
       },
+      select: USER_SELECT,
     });
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { UpdateUserDto, ViewUserDTO } from './dto';
+import { UpdateUserDto, ViewUserDTO, ViewProfileDto } from './dto';
 import { UsersRepository } from './users.repository';
 
 @Injectable()
@@ -12,7 +12,7 @@ export class UsersService {
     return user;
   }
 
-  async updateUser(id: string, data: UpdateUserDto): Promise<ViewUserDTO> {
+  async updateUser(id: string, data: UpdateUserDto): Promise<ViewProfileDto> {
     return this.usersRepository.updateUser(id, data);
   }
 }
