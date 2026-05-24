@@ -206,4 +206,13 @@ export class WorkoutsExercisesRepository {
       },
     });
   }
+
+  async findByExercise(workoutId: string, exerciseId: string) {
+    return this.prisma.workoutExercise.findMany({
+      where: {
+        workoutId,
+        exerciseId,
+      },
+    });
+  }
 }

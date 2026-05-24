@@ -9,7 +9,7 @@ import {
 } from 'src/common/dto/offset-pagination';
 import { SetsRepository } from 'src/sets/sets.repository';
 import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
-import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
+import { ExerciseSessionsService } from 'src/exercise-sessions/exercise-sessions.service';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
 
@@ -19,7 +19,7 @@ export class WorkoutsService {
     private readonly workoutsRepository: WorkoutsRepository,
     private readonly setsRepository: SetsRepository,
     private readonly exerciseRecordsService: ExerciseRecordsService,
-    private readonly exerciseRecordsRepository: ExerciseRecordRepository,
+    private readonly exerciseSessionsService: ExerciseSessionsService,
   ) {}
 
   async createWorkout(
@@ -57,7 +57,11 @@ export class WorkoutsService {
   ): Promise<ViewFullWorkoutDTO> {
     const workout = await this.workoutsRepository.findFull(userId, workoutId);
     if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
-    return workout;
+    const totalVolume =
+      (await this.exerciseSessionsService.getWorkoutTotalVolume(workoutId)) ??
+      0;
+
+    return { ...workout, totalVolume };
   }
 
   async deleteWorkout(userId: string, workoutId: string): Promise<void> {

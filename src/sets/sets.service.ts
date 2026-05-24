@@ -10,6 +10,8 @@ import { WorkoutsExercisesRepository } from 'src/workout-exercises/workout-exerc
 import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
 import { ExerciseRecordDTO } from 'src/exercise-records/dto';
 import { ExerciseSessionsService } from 'src/exercise-sessions/exercise-sessions.service';
+import { calculateSetWeight } from 'src/common/utils';
+import { PrismaService } from 'src/prisma';
 
 const SET_NOT_FOUND = 'set not found';
 const EXERCISE_NOT_FOUND = 'No such exercise';
@@ -21,6 +23,7 @@ export class SetsService {
     private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
     private readonly exerciseRecordsRepository: ExerciseRecordRepository,
     private readonly exerciseSessionsService: ExerciseSessionsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async createSet(
@@ -50,12 +53,28 @@ export class SetsService {
     const exercise =
       await this.workoutExercisesRepository.findExercise(workoutExerciseId);
     if (!exercise?.exerciseId) throw new NotFoundException(EXERCISE_NOT_FOUND);
+
+    const [user, exerciseDetails] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { bodyWeight: true },
+      }),
+      this.prisma.exercise.findUnique({
+        where: { id: exercise.exerciseId },
+        select: { isBodyWeight: true },
+      }),
+    ]);
+
+    const calculatedWeight = calculateSetWeight(
+      set.weight,
+      exerciseDetails?.isBodyWeight ?? false,
+      user?.bodyWeight ?? null,
+    );
+
     const record = await this.exerciseRecordsRepository.findRecord(
       userId,
       exercise.exerciseId,
     );
-
-    const weight = set.weight ?? 0;
 
     if (!record) {
       await this.exerciseRecordsRepository.upsertRecord(
@@ -63,15 +82,19 @@ export class SetsService {
         exercise.exerciseId,
         {},
         {
-          maxWeight: weight,
+          maxWeight: calculatedWeight,
           maxReps: set.reps,
-          bestWeight: weight,
+          bestWeight: calculatedWeight,
           bestReps: set.reps,
-          maxVolume: weight * set.reps,
+          maxVolume: calculatedWeight * set.reps,
         },
       );
     } else {
-      const updates = ExerciseRecordDTO.calcUpdates(record, weight, set.reps);
+      const updates = ExerciseRecordDTO.calcUpdates(
+        record,
+        calculatedWeight,
+        set.reps,
+      );
       if (updates) {
         await this.exerciseRecordsRepository.upsertRecord(
           userId,
@@ -135,6 +158,7 @@ export class SetsService {
     setId: string,
   ): Promise<void> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
+
     const count = await this.setsRepository.deleteOne(workoutExerciseId, setId);
     if (count === 0) throw new NotFoundException(SET_NOT_FOUND);
 
@@ -152,6 +176,15 @@ export class SetsService {
         userId,
         exercise.exerciseId,
       );
+
+      const workoutExercise =
+        await this.workoutExercisesRepository.findById(workoutExerciseId);
+      if (workoutExercise) {
+        await this.exerciseSessionsService.recalculateSessionsForWorkout(
+          userId,
+          workoutExercise.workoutId,
+        );
+      }
       return;
     }
 
@@ -185,6 +218,15 @@ export class SetsService {
       newRecord,
       newRecord,
     );
+
+    const workoutExercise =
+      await this.workoutExercisesRepository.findById(workoutExerciseId);
+    if (workoutExercise) {
+      await this.exerciseSessionsService.recalculateSessionsForWorkout(
+        userId,
+        workoutExercise.workoutId,
+      );
+    }
   }
 
   async reorderSets(

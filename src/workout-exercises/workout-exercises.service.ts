@@ -20,7 +20,8 @@ import {
 import { decodeCursor, encodeCursor } from 'src/common/utils';
 import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
 import { SetsRepository } from 'src/sets/sets.repository';
-import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
+import { ExerciseSessionsService } from 'src/exercise-sessions/exercise-sessions.service';
+import { PrismaService } from 'src/prisma';
 
 const WORKOUT_EXERCISE_NOT_FOUND = 'no workout exercise found';
 
@@ -31,7 +32,8 @@ export class WorkoutExercisesService {
     private readonly workoutsRepository: WorkoutsRepository,
     private readonly exerciseRecordsService: ExerciseRecordsService,
     private readonly setsRepository: SetsRepository,
-    private readonly exerciseRecordsRepository: ExerciseRecordRepository,
+    private readonly exerciseSessionsService: ExerciseSessionsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async createWorkoutExercise(
@@ -131,6 +133,23 @@ export class WorkoutExercisesService {
     );
     if (count === 0) throw new NotFoundException(WORKOUT_EXERCISE_NOT_FOUND);
     if (allSetsBeforeDelete.length <= 0) return;
+
+    const remainingWorkoutExercises =
+      await this.workoutExercisesRepository.findByExercise(
+        workoutId,
+        exercise.exerciseId,
+      );
+    if (!remainingWorkoutExercises || remainingWorkoutExercises.length === 0) {
+      await this.exerciseSessionsService.deleteSessionRecord(
+        workoutId,
+        exercise.exerciseId,
+      );
+    } else {
+      await this.exerciseSessionsService.recalculateSessionsForWorkout(
+        userId,
+        workoutId,
+      );
+    }
 
     const remainingSets = allSetsBeforeDelete.filter(
       (s) => s.workoutExerciseId !== workoutExerciseId,

@@ -1,11 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { ExerciseRecordRepository } from './exercise-records.repository';
 import { ExerciseRecordDTO } from './dto';
+import { PrismaService } from 'src/prisma';
+import { calculateSetWeight } from 'src/common/utils';
 
 @Injectable()
 export class ExerciseRecordsService {
   constructor(
     private readonly exerciseRecordsRepository: ExerciseRecordRepository,
+    private readonly prisma: PrismaService,
   ) {}
 
   async recalculateRecord(
@@ -18,9 +21,27 @@ export class ExerciseRecordsService {
       return;
     }
 
+    const [exercise, user] = await Promise.all([
+      this.prisma.exercise.findUnique({
+        where: { id: exerciseId },
+        select: { isBodyWeight: true },
+      }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { bodyWeight: true },
+      }),
+    ]);
+
+    const isBodyWeight = exercise?.isBodyWeight ?? false;
+    const userBodyWeight = user?.bodyWeight ?? null;
+
     const newRecord = allSets.reduce(
       (best, set) => {
-        const weight = set.weight ?? 0;
+        const weight = calculateSetWeight(
+          set.weight,
+          isBodyWeight,
+          userBodyWeight,
+        );
         const volume = weight * set.reps;
         const oneRepMax = ExerciseRecordDTO.calcOneRepMax(weight, set.reps);
         const bestOneRepMax = ExerciseRecordDTO.calcOneRepMax(

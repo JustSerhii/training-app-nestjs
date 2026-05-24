@@ -22,12 +22,8 @@ export class ExerciseSessionsService {
       await this.prisma.workoutExercise.findMany({
         where: { workoutId },
         include: {
-          sets: {
-            select: { weight: true, reps: true },
-          },
-          exercise: {
-            select: { id: true, isBodyWeight: true },
-          },
+          sets: { select: { weight: true, reps: true } },
+          exercise: { select: { id: true, isBodyWeight: true } },
         },
       });
 
@@ -40,13 +36,18 @@ export class ExerciseSessionsService {
       string,
       Array<{ weight: number | null; reps: number }>
     >();
-
     for (const we of workoutExercises) {
       const existing = setsByExercise.get(we.exerciseId) || [];
       setsByExercise.set(we.exerciseId, [...existing, ...we.sets]);
     }
 
-    for (const [exerciseId, sets] of setsByExercise.entries()) {
+    const exerciseIdsInWorkout = new Set(
+      workoutExercises.map((we) => we.exerciseId),
+    );
+
+    for (const exerciseId of exerciseIdsInWorkout) {
+      const sets = setsByExercise.get(exerciseId) || [];
+
       const workoutExercise = workoutExercises.find(
         (we) => we.exerciseId === exerciseId,
       );
@@ -56,24 +57,23 @@ export class ExerciseSessionsService {
         continue;
       }
 
-      const volume = calculateExerciseVolume(
-        sets,
-        workoutExercise.exercise.isBodyWeight,
-        user?.bodyWeight ?? null,
-      );
+      if (sets.length === 0) {
+        await this.prisma.exerciseSession.deleteMany({
+          where: { workoutId, exerciseId },
+        });
+      } else {
+        const volume = calculateExerciseVolume(
+          sets,
+          workoutExercise.exercise.isBodyWeight,
+          user?.bodyWeight ?? null,
+        );
 
-      await this.prisma.exerciseSession.upsert({
-        where: {
-          workoutId_exerciseId: { workoutId, exerciseId },
-        },
-        update: { volume },
-        create: {
-          userId,
-          workoutId,
-          exerciseId,
-          volume,
-        },
-      });
+        await this.prisma.exerciseSession.upsert({
+          where: { workoutId_exerciseId: { workoutId, exerciseId } },
+          update: { volume },
+          create: { userId, workoutId, exerciseId, volume },
+        });
+      }
     }
   }
 
@@ -98,5 +98,22 @@ export class ExerciseSessionsService {
     });
 
     return history;
+  }
+
+  async deleteSessionRecord(workoutId: string, exerciseId: string) {
+    await this.prisma.exerciseSession.deleteMany({
+      where: {
+        workoutId,
+        exerciseId,
+      },
+    });
+  }
+
+  async getWorkoutTotalVolume(workoutId: string): Promise<number> {
+    const sessions = await this.prisma.exerciseSession.findMany({
+      where: { workoutId },
+      select: { volume: true },
+    });
+    return sessions.reduce((sum, s) => sum + s.volume, 0);
   }
 }
