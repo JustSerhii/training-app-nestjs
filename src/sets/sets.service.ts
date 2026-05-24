@@ -90,7 +90,7 @@ export class SetsService {
 
     await this.exerciseSessionsService.recalculateSessionsForWorkout(
       userId,
-      workoutExercise?.id,
+      workoutExercise.workoutId,
     );
 
     return set;

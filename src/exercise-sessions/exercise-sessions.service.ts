@@ -51,7 +51,10 @@ export class ExerciseSessionsService {
         (we) => we.exerciseId === exerciseId,
       );
 
-      if (!workoutExercise?.exercise?.isBodyWeight) continue;
+      if (!workoutExercise?.exercise) {
+        console.error(`Exercise not found for exerciseId: ${exerciseId}`);
+        continue;
+      }
 
       const volume = calculateExerciseVolume(
         sets,
