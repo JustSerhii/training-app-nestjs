@@ -6,6 +6,7 @@ export const WORKOUT_SELECT = {
   title: true,
   description: true,
   createdAt: true,
+  duration: true,
 } satisfies Prisma.WorkoutSelect;
 
 export const FULL_WORKOUT_SELECT = {

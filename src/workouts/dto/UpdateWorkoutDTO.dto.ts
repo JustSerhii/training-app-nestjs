@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 
 export class UpdateWorkoutDTO {
   @IsOptional()
@@ -8,4 +8,8 @@ export class UpdateWorkoutDTO {
   @IsOptional()
   @IsString()
   description?: string;
+
+  @IsOptional()
+  @IsInt()
+  duration?: number;
 }

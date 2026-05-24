@@ -55,6 +55,7 @@ model Workout {
   title            String            @db.VarChar()
   description      String?           @db.VarChar()
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz()
+  duration  Int? @default(0) @map("duration") @db.Integer  // seconds
   user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId           String            @map("user_id") @db.Uuid
   workoutExercises WorkoutExercise[]
