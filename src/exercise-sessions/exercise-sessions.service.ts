@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { calculateExerciseVolume } from 'src/common/utils';
 import { PrismaService } from 'src/prisma';
+import { ExerciseVolumeDTO } from './dto';
 
 type WorkoutExerciseWithSets = Prisma.WorkoutExerciseGetPayload<{
   include: {
@@ -81,7 +82,7 @@ export class ExerciseSessionsService {
     userId: string,
     exerciseId: string,
     limit: number = 20,
-  ): Promise<Array<{ workoutId: string; volume: number; createdAt: Date }>> {
+  ): Promise<Array<ExerciseVolumeDTO>> {
     const history: Array<{
       workoutId: string;
       volume: number;

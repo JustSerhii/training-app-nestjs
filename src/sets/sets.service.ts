@@ -44,12 +44,6 @@ export class SetsService {
 
     const order = lastSet ? lastSet.order + 1 : 1;
 
-    const set = await this.setsRepository.create(
-      workoutExerciseId,
-      data,
-      order,
-    );
-
     const exercise =
       await this.workoutExercisesRepository.findExercise(workoutExerciseId);
     if (!exercise?.exerciseId) throw new NotFoundException(EXERCISE_NOT_FOUND);
@@ -66,9 +60,18 @@ export class SetsService {
     ]);
 
     const calculatedWeight = calculateSetWeight(
-      set.weight,
+      data.weight ?? 0,
       exerciseDetails?.isBodyWeight ?? false,
       user?.bodyWeight ?? null,
+    );
+
+    const set = await this.setsRepository.create(
+      workoutExerciseId,
+      {
+        ...data,
+        weight: calculatedWeight,
+      },
+      order,
     );
 
     const record = await this.exerciseRecordsRepository.findRecord(
@@ -116,7 +119,7 @@ export class SetsService {
       workoutExercise.workoutId,
     );
 
-    return set;
+    return { ...set, plateWeight: data.weight };
   }
 
   async getSet(
@@ -135,7 +138,39 @@ export class SetsService {
     workoutExerciseId: string,
   ): Promise<ViewSetDTO[]> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
-    return this.setsRepository.findMany(workoutExerciseId);
+
+    const workoutExercise =
+      await this.workoutExercisesRepository.findById(workoutExerciseId);
+    if (!workoutExercise)
+      throw new NotFoundException('Workout exercise not found');
+
+    const exercise =
+      await this.workoutExercisesRepository.findExercise(workoutExerciseId);
+    if (!exercise?.exerciseId)
+      throw new NotFoundException('Exercise not found');
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { bodyWeight: true },
+    });
+
+    const sets = await this.setsRepository.findMany(workoutExerciseId);
+
+    return sets.map((set) => {
+      const isBodyWeight = exercise.exercise.isBodyWeight;
+      const bodyWeight = user?.bodyWeight ?? 0;
+
+      const plateWeight =
+        isBodyWeight && set.weight != null && bodyWeight > 0
+          ? set.weight - bodyWeight
+          : set.weight;
+
+      return {
+        ...set,
+        plateWeight:
+          plateWeight != null && plateWeight > 0 ? plateWeight : null,
+      };
+    });
   }
 
   async updateSet(

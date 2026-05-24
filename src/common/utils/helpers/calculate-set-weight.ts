@@ -3,13 +3,9 @@ export function calculateSetWeight(
   exerciseIsBodyWeight: boolean,
   userBodyWeight: number | null,
 ): number {
-  if (setWeight != null && setWeight > 0) {
-    return setWeight;
-  }
+  const addedWeight = setWeight != null && setWeight > 0 ? setWeight : 0;
+  const baseWeight =
+    exerciseIsBodyWeight && userBodyWeight != null ? userBodyWeight : 0;
 
-  if (exerciseIsBodyWeight && userBodyWeight != null) {
-    return userBodyWeight;
-  }
-
-  return 0;
+  return baseWeight + addedWeight;
 }

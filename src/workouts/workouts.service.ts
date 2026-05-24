@@ -10,6 +10,7 @@ import {
 import { SetsRepository } from 'src/sets/sets.repository';
 import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
 import { ExerciseSessionsService } from 'src/exercise-sessions/exercise-sessions.service';
+import { PrismaService } from 'src/prisma';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
 
@@ -20,6 +21,7 @@ export class WorkoutsService {
     private readonly setsRepository: SetsRepository,
     private readonly exerciseRecordsService: ExerciseRecordsService,
     private readonly exerciseSessionsService: ExerciseSessionsService,
+    private readonly prisma: PrismaService,
   ) {}
 
   async createWorkout(
@@ -57,11 +59,44 @@ export class WorkoutsService {
   ): Promise<ViewFullWorkoutDTO> {
     const workout = await this.workoutsRepository.findFull(userId, workoutId);
     if (!workout) throw new NotFoundException(WORKOUT_NOT_FOUND);
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { bodyWeight: true },
+    });
+    const bodyWeight = user?.bodyWeight ?? 0;
+
+    const mappedExercises = workout.workoutExercises.map((we) => {
+      const isBodyWeight = we.exercise.isBodyWeight;
+
+      const mappedSets = we.sets.map((set) => {
+        const plateWeight =
+          isBodyWeight && set.weight != null && bodyWeight > 0
+            ? set.weight - bodyWeight
+            : set.weight;
+
+        return {
+          ...set,
+          plateWeight:
+            plateWeight != null && plateWeight > 0 ? plateWeight : null,
+        };
+      });
+
+      return {
+        ...we,
+        sets: mappedSets,
+      };
+    });
+
     const totalVolume =
       (await this.exerciseSessionsService.getWorkoutTotalVolume(workoutId)) ??
       0;
 
-    return { ...workout, totalVolume };
+    return {
+      ...workout,
+      workoutExercises: mappedExercises,
+      totalVolume,
+    };
   }
 
   async deleteWorkout(userId: string, workoutId: string): Promise<void> {

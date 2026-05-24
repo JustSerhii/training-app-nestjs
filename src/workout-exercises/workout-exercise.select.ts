@@ -11,6 +11,7 @@ export const WORKOUT_EXERCISE_SELECT = {
       id: true,
       title: true,
       muscleGroups: true,
+      isBodyWeight: true,
     },
   },
   sets: {

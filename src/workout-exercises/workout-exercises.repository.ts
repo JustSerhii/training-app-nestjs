@@ -203,6 +203,11 @@ export class WorkoutsExercisesRepository {
       },
       select: {
         exerciseId: true,
+        exercise: {
+          select: {
+            isBodyWeight: true,
+          },
+        },
       },
     });
   }
