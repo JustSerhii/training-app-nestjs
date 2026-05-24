@@ -4,10 +4,16 @@ import { SetsService } from './sets.service';
 import { WorkoutExercisesModule } from 'src/workout-exercises/workout-exercises.module';
 import { ExerciseRecordModule } from 'src/exercise-records/exercise-records.module';
 import { SetsRepositoryModule } from './sets-repository.module';
+import { ExerciseSessionsModule } from 'src/exercise-sessions/exercise-sessions.module';
 
 @Module({
   controllers: [SetsController],
   providers: [SetsService],
-  imports: [SetsRepositoryModule, WorkoutExercisesModule, ExerciseRecordModule],
+  imports: [
+    SetsRepositoryModule,
+    WorkoutExercisesModule,
+    ExerciseRecordModule,
+    ExerciseSessionsModule,
+  ],
 })
 export class SetsModule {}

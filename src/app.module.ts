@@ -14,6 +14,7 @@ import { SetsModule } from './sets/sets.module';
 import { LoggerMiddleware } from './middleware/logger.middleware';
 import { ConfigModule } from '@nestjs/config';
 import { ExerciseRecordModule } from './exercise-records/exercise-records.module';
+import { ExerciseSessionsModule } from './exercise-sessions/exercise-sessions.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { ExerciseRecordModule } from './exercise-records/exercise-records.module
     WorkoutExercisesModule,
     SetsModule,
     ExerciseRecordModule,
+    ExerciseSessionsModule,
     ConfigModule.forRoot({
       isGlobal: true,
     }),

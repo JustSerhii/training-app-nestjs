@@ -9,8 +9,10 @@ import { SetsRepository } from './sets.repository';
 import { WorkoutsExercisesRepository } from 'src/workout-exercises/workout-exercises.repository';
 import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
 import { ExerciseRecordDTO } from 'src/exercise-records/dto';
+import { ExerciseSessionsService } from 'src/exercise-sessions/exercise-sessions.service';
 
 const SET_NOT_FOUND = 'set not found';
+const EXERCISE_NOT_FOUND = 'No such exercise';
 
 @Injectable()
 export class SetsService {
@@ -18,6 +20,7 @@ export class SetsService {
     private readonly setsRepository: SetsRepository,
     private readonly workoutExercisesRepository: WorkoutsExercisesRepository,
     private readonly exerciseRecordsRepository: ExerciseRecordRepository,
+    private readonly exerciseSessionsService: ExerciseSessionsService,
   ) {}
 
   async createSet(
@@ -26,6 +29,13 @@ export class SetsService {
     data: CreateSetDTO,
   ): Promise<ViewSetDTO> {
     await this.assertWorkoutExerciseOwner(userId, workoutExerciseId);
+
+    const workoutExercise =
+      await this.workoutExercisesRepository.findById(workoutExerciseId);
+
+    if (!workoutExercise) {
+      throw new NotFoundException('Workout exercise not found');
+    }
 
     const lastSet = await this.setsRepository.findLastOne(workoutExerciseId);
 
@@ -39,7 +49,7 @@ export class SetsService {
 
     const exercise =
       await this.workoutExercisesRepository.findExercise(workoutExerciseId);
-    if (!exercise?.exerciseId) throw new NotFoundException('No such exercise');
+    if (!exercise?.exerciseId) throw new NotFoundException(EXERCISE_NOT_FOUND);
     const record = await this.exerciseRecordsRepository.findRecord(
       userId,
       exercise.exerciseId,
@@ -77,6 +87,11 @@ export class SetsService {
         );
       }
     }
+
+    await this.exerciseSessionsService.recalculateSessionsForWorkout(
+      userId,
+      workoutExercise?.id,
+    );
 
     return set;
   }
@@ -125,7 +140,7 @@ export class SetsService {
 
     const exercise =
       await this.workoutExercisesRepository.findExercise(workoutExerciseId);
-    if (!exercise?.exerciseId) throw new NotFoundException('No such exercise');
+    if (!exercise?.exerciseId) throw new NotFoundException(EXERCISE_NOT_FOUND);
 
     const allSets = await this.setsRepository.findAllSets(
       userId,
