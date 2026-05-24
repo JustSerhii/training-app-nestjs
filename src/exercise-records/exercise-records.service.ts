@@ -69,4 +69,20 @@ export class ExerciseRecordsService {
       );
     });
   }
+
+  async updateOrDeleteRecord(
+    userId: string,
+    exerciseId: string,
+    remainingSets: Array<{
+      weight: number | null;
+      reps: number;
+      workoutExerciseId: string;
+    }>,
+  ) {
+    if (remainingSets.length === 0) {
+      await this.exerciseRecordsRepository.deleteRecord(userId, exerciseId);
+    } else {
+      await this.recalculateRecord(userId, exerciseId, remainingSets);
+    }
+  }
 }

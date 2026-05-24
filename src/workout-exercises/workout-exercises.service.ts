@@ -20,6 +20,7 @@ import {
 import { decodeCursor, encodeCursor } from 'src/common/utils';
 import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
 import { SetsRepository } from 'src/sets/sets.repository';
+import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
 
 const WORKOUT_EXERCISE_NOT_FOUND = 'no workout exercise found';
 
@@ -30,6 +31,7 @@ export class WorkoutExercisesService {
     private readonly workoutsRepository: WorkoutsRepository,
     private readonly exerciseRecordsService: ExerciseRecordsService,
     private readonly setsRepository: SetsRepository,
+    private readonly exerciseRecordsRepository: ExerciseRecordRepository,
   ) {}
 
   async createWorkoutExercise(
@@ -133,13 +135,11 @@ export class WorkoutExercisesService {
     const remainingSets = allSetsBeforeDelete.filter(
       (s) => s.workoutExerciseId !== workoutExerciseId,
     );
-    if (remainingSets.length > 0) {
-      await this.exerciseRecordsService.recalculateRecord(
-        userId,
-        exercise.exerciseId,
-        remainingSets,
-      );
-    }
+    return this.exerciseRecordsService.updateOrDeleteRecord(
+      userId,
+      exercise.exerciseId,
+      remainingSets,
+    );
   }
 
   async reorderWorkoutExercises(

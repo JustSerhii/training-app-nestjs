@@ -9,6 +9,7 @@ import {
 } from 'src/common/dto/offset-pagination';
 import { SetsRepository } from 'src/sets/sets.repository';
 import { ExerciseRecordsService } from 'src/exercise-records/exercise-records.service';
+import { ExerciseRecordRepository } from 'src/exercise-records/exercise-records.repository';
 
 const WORKOUT_NOT_FOUND = 'workout not found';
 
@@ -18,6 +19,7 @@ export class WorkoutsService {
     private readonly workoutsRepository: WorkoutsRepository,
     private readonly setsRepository: SetsRepository,
     private readonly exerciseRecordsService: ExerciseRecordsService,
+    private readonly exerciseRecordsRepository: ExerciseRecordRepository,
   ) {}
 
   async createWorkout(
@@ -81,14 +83,11 @@ export class WorkoutsService {
         const remainingSets = sets.filter(
           (s) => !workoutExercises.some((we) => we.id === s.workoutExerciseId),
         );
-        if (remainingSets.length > 0) {
-          return this.exerciseRecordsService.recalculateRecord(
-            userId,
-            exerciseId,
-            remainingSets,
-          );
-        }
-        return Promise.resolve();
+        return this.exerciseRecordsService.updateOrDeleteRecord(
+          userId,
+          exerciseId,
+          remainingSets,
+        );
       }),
     );
   }
