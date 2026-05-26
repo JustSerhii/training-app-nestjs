@@ -28,11 +28,6 @@ export class ExerciseSessionsService {
         },
       });
 
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { bodyWeight: true },
-    });
-
     const setsByExercise = new Map<
       string,
       Array<{ weight: number | null; reps: number }>
@@ -63,11 +58,7 @@ export class ExerciseSessionsService {
           where: { workoutId, exerciseId },
         });
       } else {
-        const volume = calculateExerciseVolume(
-          sets,
-          workoutExercise.exercise.isBodyWeight,
-          user?.bodyWeight ?? null,
-        );
+        const volume = calculateExerciseVolume(sets);
 
         await this.prisma.exerciseSession.upsert({
           where: { workoutId_exerciseId: { workoutId, exerciseId } },

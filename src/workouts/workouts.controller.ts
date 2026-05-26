@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
@@ -22,12 +23,17 @@ import {
   PaginationDto,
 } from 'src/common/dto/offset-pagination';
 import { User } from 'src/decorators';
+import { WorkoutsPdfService } from './workouts-pdf.service';
+import express from 'express';
 
 @UseGuards(AuthGuard)
 @ApiBearerAuth(SWAGGER_BEARER_NAME)
 @Controller('workouts')
 export class WorkoutsController {
-  constructor(private readonly workoutsService: WorkoutsService) {}
+  constructor(
+    private readonly workoutsService: WorkoutsService,
+    private readonly workoutsPdfService: WorkoutsPdfService,
+  ) {}
 
   @Post()
   createWorkout(
@@ -59,6 +65,29 @@ export class WorkoutsController {
     @Param('workoutId') workoutId: string,
   ): Promise<ViewWorkoutDTO> {
     return this.workoutsService.getWorkout(user.sub, workoutId);
+  }
+
+  @Get(':workoutId/export')
+  async exportWorkout(
+    @User() user: types.JwtPayload,
+    @Param('workoutId') workoutId: string,
+    @Res() res: express.Response,
+  ) {
+    const workout = await this.workoutsService.getFullWorkout(
+      user.sub,
+      workoutId,
+    );
+    const pdfBuffer = await this.workoutsPdfService.generatePdf(
+      user.sub,
+      workout,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="workout-${workoutId.slice(0, 8)}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.end(pdfBuffer);
   }
 
   @HttpCode(204)
