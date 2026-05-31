@@ -11,7 +11,12 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { CreateWorkoutDTO, UpdateWorkoutDTO, ViewWorkoutDTO } from './dto';
+import {
+  CreateWorkoutDTO,
+  ExportWorkoutsDTO,
+  UpdateWorkoutDTO,
+  ViewWorkoutDTO,
+} from './dto';
 import { WorkoutsService } from './workouts.service';
 import { AuthGuard } from 'src/auth/guards';
 import * as types from 'src/auth/types';
@@ -84,6 +89,36 @@ export class WorkoutsController {
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': `attachment; filename="workout-${workoutId.slice(0, 8)}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    res.end(pdfBuffer);
+  }
+
+  @Post('export/bulk')
+  async exportWorkoutsBulk(
+    @User() user: types.JwtPayload,
+    @Body() data: ExportWorkoutsDTO,
+    @Res() res: express.Response,
+  ) {
+    const workouts = await this.workoutsService.getFullWorkoutsByIds(
+      user.sub,
+      data.workoutIds,
+    );
+
+    const pdfBuffer = await this.workoutsPdfService.generateBulkPdf(
+      user.sub,
+      workouts,
+    );
+
+    const firstDate = workouts[0].createdAt.toISOString().slice(0, 10);
+    const lastDate = workouts[workouts.length - 1].createdAt
+      .toISOString()
+      .slice(0, 10);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="workouts-${firstDate}_to_${lastDate}.pdf"`,
       'Content-Length': pdfBuffer.length,
     });
 

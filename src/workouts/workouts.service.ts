@@ -99,6 +99,35 @@ export class WorkoutsService {
     };
   }
 
+  async getFullWorkoutsByIds(
+    userId: string,
+    workoutIds: string[],
+  ): Promise<ViewFullWorkoutDTO[]> {
+    const workouts = await Promise.all(
+      workoutIds.map((id) =>
+        this.getFullWorkout(userId, id).catch((error) => {
+          if (error instanceof NotFoundException) {
+            console.warn(`Workout ${id} not found for user ${userId}`);
+            return null;
+          }
+          throw error;
+        }),
+      ),
+    );
+
+    const validWorkouts = workouts.filter(
+      (w): w is ViewFullWorkoutDTO => w !== null,
+    );
+
+    if (validWorkouts.length === 0) {
+      throw new NotFoundException('No valid workouts found for export');
+    }
+
+    return validWorkouts.sort(
+      (b, a) => a.createdAt.getTime() - b.createdAt.getTime(),
+    );
+  }
+
   async deleteWorkout(userId: string, workoutId: string): Promise<void> {
     const workoutExercises =
       await this.workoutsRepository.findWorkoutExerciseIds(workoutId);
