@@ -14,7 +14,7 @@
     "start": "dotenv -- nest start",
     "start:dev": "dotenv -- nest start --watch",
     "start:debug": "dotenv -- nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
