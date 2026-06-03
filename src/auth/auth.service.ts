@@ -14,14 +14,14 @@ const REFRESH_TOKEN_TTL_SECONDS = '7d';
 
 @Injectable()
 export class AuthService {
-  private readonly COOKIE_DOMAIN: string;
+  private readonly COOKIE_DOMAIN?: string;
 
   constructor(
     private readonly jwtService: JwtService,
     private readonly usersRepository: UsersRepository,
     private readonly configService: ConfigService,
   ) {
-    this.COOKIE_DOMAIN = configService.getOrThrow<string>('COOKIE_DOMAIN');
+    this.COOKIE_DOMAIN = configService.get<string>('COOKIE_DOMAIN');
   }
 
   async register(res: Response, data: RegisterUserDTO): Promise<AccessDTO> {
@@ -113,12 +113,16 @@ export class AuthService {
   }
 
   private setCookie(res: Response, value: string, expires: Date): void {
+    const isProduction =
+      this.configService.get('APP_ENVIRONMENT') === 'production';
+
     res.cookie('refreshToken', value, {
       httpOnly: true,
-      domain: this.COOKIE_DOMAIN,
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax',
+      domain: isProduction ? undefined : this.COOKIE_DOMAIN,
       expires,
-      secure: this.configService.get('APP_ENVIRONMENT') === 'production',
-      sameSite: 'lax',
+      path: '/',
     });
   }
 
